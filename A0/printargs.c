@@ -1,42 +1,49 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-int processArguments(int argc, char *argv[], int *a, int *b) {
+#define NUM_VARIABLES 2
+
+int processArguments(int argc, char *argv[], int variables[], bool initialized[]) {
     int option;
-    bool aInitialized = false; bool bInitialized = false;
+    for (int i = 0; i < NUM_VARIABLES; i++) {
+        initialized[i] = false;
+    }
+
     while ((option = getopt(argc, argv, "a:b:")) != -1) {
-        switch (option) {
-            case 'a':
-                *a = atoi(optarg);
-                aInitialized = true;
+        for (int i = 0; i < NUM_VARIABLES; i++) {
+            if (option == 'a' + i) {
+                variables[i] = atoi(optarg);
+                initialized[i] = true;
                 break;
-            case 'b':
-                *b = atoi(optarg);
-                aInitialized = true;
-                break;
-            default:
-                return 1;
+            }
         }
     }
-    if (!aInitialized || !bInitialized) {
-        printf("Both -a and -b options with integer values are required.\n");
-        return 1;
+
+    for (int i = 0; i < NUM_VARIABLES; i++) {
+        if (!initialized[i]) {
+            printf("Option -%c was not specified.\n", 'a' + i);
+            return 1;
+        }
     }
+
     return 0;
 }
 
 int main(int argc, char *argv[]) {
-    int a = 0; int b = 0;
+    int variables[NUM_VARIABLES];
+    bool initialized[NUM_VARIABLES];
 
-    if (processArguments(argc, argv, &a, &b) != 0) {
-        printf("Usage: -a <int1> -b <int2>\n");
+    if (processArguments(argc, argv, variables, initialized) != 0) {
+        printf("Usage: -a<int1> -b<int2> ... -j<int10>\n");
         return 1;
     }
 
-    printf("A is %d and B is %d\n", a, b);
+    for (int i = 0; i < NUM_VARIABLES; i++) {
+        printf("Variable %c is %d\n", 'A' + i, variables[i]);
+    }
+
     return 0;
 }
