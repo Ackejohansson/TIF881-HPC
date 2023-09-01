@@ -1,31 +1,40 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 
-int main(int argc, char *argv[]) {
+int processArguments(int argc, char *argv[], int *a, int *b) {
     int option;
-    char *str1 = NULL;
-    char *str2 = NULL;
-
     while ((option = getopt(argc, argv, "a:b:")) != -1) {
         switch (option) {
             case 'a':
-                str1 = optarg;
+                *a = atoi(optarg);  // Convert the string argument to an integer
                 break;
             case 'b':
-                str2 = optarg;
+                *b = atoi(optarg);  // Convert the string argument to an integer
                 break;
             default:
-                printf("Usage: %s -a <string1> -b <string2>\n", argv[0]);
                 return 1;
         }
     }
-
-    if (str1 == NULL || str2 == NULL) {
-        printf("Both -a and -b options are required.\n");
+    if (*a == 0 || *b == 0) {
+        printf("Both -a and -b options with integer values are required.\n");
         return 1;
     }
-    printf("A is %c and B is %c\n", str1[0], str2[0]);
-    
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    int a = 0;
+    int b = 0;
+
+    if (processArguments(argc, argv, &a, &b) != 0) {
+        printf("Usage: -a <int1> -b <int2>\n");
+        return 1;
+    }
+
+    printf("A is %d and B is %d\n", a, b);
+
     return 0;
 }
