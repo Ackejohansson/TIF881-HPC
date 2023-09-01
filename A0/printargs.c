@@ -11,7 +11,7 @@ int processArguments(int argc, char *argv[], int variables[], bool initialized[]
     for (int i = 0; i < NUM_VARIABLES; i++) {
         initialized[i] = false;
     }
-
+    // Process command line arguments
     while ((option = getopt(argc, argv, "a:b:")) != -1) {
         for (int i = 0; i < NUM_VARIABLES; i++) {
             if (option == 'a' + i) {
@@ -21,7 +21,7 @@ int processArguments(int argc, char *argv[], int variables[], bool initialized[]
             }
         }
     }
-
+    // Check that all variables were initialized
     for (int i = 0; i < NUM_VARIABLES; i++) {
         if (!initialized[i]) {
             printf("Option -%c was not specified.\n", 'a' + i);
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     bool initialized[NUM_VARIABLES];
 
     if (processArguments(argc, argv, variables, initialized) != 0) {
-        printf("Usage: -a<int1> -b<int2> ... -j<int10>\n");
+        printf("Usage: -a<int1> -b<int2> ... -j<int num_variables>\n");
         return 1;
     }
 
