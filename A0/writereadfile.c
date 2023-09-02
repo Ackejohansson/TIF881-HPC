@@ -1,49 +1,47 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
-void create_matrix(){
-    FILE *f = fopen("matrix.txt", "w");
-    if (f == NULL) {
+FILE* open_file(char *mode){
+    FILE *fp = fopen("matrix.txt", mode);
+    if (fp == NULL) {
         printf("Error opening file!\n");
         exit(1);
     }
-    const int size = 10;
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; ++j) {
-            fprintf(f, "%d ", i * j);
-        }
-        fprintf(f, "\n");
-    }
-    fclose(f);
+    return fp;
 }
 
-void read_matrix(){
-    FILE *f = fopen("matrix.txt", "r");
-    if (f == NULL) {
-      printf("Error opening file!\n");
-      exit(1);
+void create_matrix(int size){
+  int *matrix = (int*)malloc(sizeof(int) * size * size);
+  
+  for (int i = 0; i < size; i++) {
+    for (int j = 0; j < size; ++j) {
+      matrix[i*size + j] = i * j;
     }
-
-    const int size = 10;
-    int value;
-
-    for (int i = 0; i < size; i++){
-      for (int j = 0; j < size; j++){
-        // Saves the value read from the file in the variable value
-        fscanf(f, "%d", &value);
-        // Checks if the value read is equal to i * j
-        if (value != i * j){
-          printf("Error reading file!\n");
-          exit(1);
-        }
-      }
-    }
-    printf("File read successfully!\n");
+  }
+  FILE* fp = open_file("wb");
+  fwrite(matrix, sizeof(int), size * size, fp);
+  fclose(fp);
+  free(matrix);
 }
 
+void read_matrix(int size){
+  FILE* fp = open_file("rb");
+  int *matrix = (int*)malloc(sizeof(int)*size*size);
+  fread(matrix, sizeof(int), size * size, fp);
+  fclose(fp);
+  for (int i = 0; i < size; i++){
+    for (int j = 0; j < size; j++){
+      assert(matrix[i*size + j] == i*j);
+    }
+  }
+  printf("File was sucessfully created!!\n");
+  free(matrix);
+}
 
 int main() {
-    create_matrix();
-    read_matrix();
-    return 0;
+  const int matrix_size = 10;
+  create_matrix(matrix_size);
+  read_matrix(matrix_size);
+  return 0;
 }
