@@ -43,5 +43,6 @@ int main() {
   const int matrix_size = 10;
   create_matrix(matrix_size);
   read_matrix(matrix_size);
+  
   return 0;
 }
