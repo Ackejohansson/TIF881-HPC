@@ -14,6 +14,8 @@ int main() {
     const int matrix_size = 10;
     create_matrix(matrix_size);
     read_matrix(matrix_size);
+
+    printf("Program executed successfully!\n");
     
     return 0;
 }
@@ -65,6 +67,6 @@ void read_matrix(int size) {
             assert(matrix[i * size + j] == i * j);
         }
     }
-    printf("File was successfully created!\n");
     free(matrix);
+    printf("File was successfully read! Elements match the expected.\n");
 }
