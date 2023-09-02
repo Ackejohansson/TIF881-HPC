@@ -2,47 +2,69 @@
 #include <stdlib.h>
 #include <assert.h>
 
-FILE* open_file(char *mode){
-    FILE *fp = fopen("matrix.txt", mode);
+#define MATRIX_FILENAME "matrix.txt"
+
+// Function prototypes
+FILE* open_file(const char *mode);
+int* allocate_matrix(int size);
+void create_matrix(int size);
+void read_matrix(int size);
+
+int main() {
+    const int matrix_size = 10;
+    create_matrix(matrix_size);
+    read_matrix(matrix_size);
+    
+    return 0;
+}
+
+// Function implementations
+
+FILE* open_file(const char *mode) {
+    FILE *fp = fopen(MATRIX_FILENAME, mode);
     if (fp == NULL) {
-        printf("Error opening file!\n");
+        perror("Error opening file");
         exit(1);
     }
     return fp;
 }
 
-void create_matrix(int size){
-  int *matrix = (int*)malloc(sizeof(int) * size * size);
-  
-  for (int i = 0; i < size; i++) {
-    for (int j = 0; j < size; ++j) {
-      matrix[i*size + j] = i * j;
+int* allocate_matrix(int size) {
+    int* matrix = (int*)malloc(sizeof(int) * size * size);
+    if (matrix == NULL) {
+        perror("Memory allocation error");
+        exit(1);
     }
-  }
-  FILE* fp = open_file("wb");
-  fwrite(matrix, sizeof(int), size * size, fp);
-  fclose(fp);
-  free(matrix);
+    return matrix;
 }
 
-void read_matrix(int size){
-  FILE* fp = open_file("rb");
-  int *matrix = (int*)malloc(sizeof(int)*size*size);
-  fread(matrix, sizeof(int), size * size, fp);
-  fclose(fp);
-  for (int i = 0; i < size; i++){
-    for (int j = 0; j < size; j++){
-      assert(matrix[i*size + j] == i*j);
+void create_matrix(int size) {
+    int* matrix = allocate_matrix(size);
+    
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            matrix[i * size + j] = i * j;
+        }
     }
-  }
-  printf("File was sucessfully created!!\n");
-  free(matrix);
+    
+    FILE* fp = open_file("wb");
+    fwrite(matrix, sizeof(int), size * size, fp);
+    fclose(fp);
+    
+    free(matrix);
 }
 
-int main() {
-  const int matrix_size = 10;
-  create_matrix(matrix_size);
-  read_matrix(matrix_size);
-  
-  return 0;
+void read_matrix(int size) {
+    FILE* fp = open_file("rb");
+    int* matrix = allocate_matrix(size);
+    fread(matrix, sizeof(int), size * size, fp);
+    fclose(fp);
+    
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            assert(matrix[i * size + j] == i * j);
+        }
+    }
+    printf("File was successfully created!\n");
+    free(matrix);
 }
