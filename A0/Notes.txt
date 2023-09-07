@@ -1,0 +1,18 @@
+Stack vs Heap
+The stack memory was around 2 MB or 500 000 ints of size 4 bytes.
+Stack faster, heap larger
+
+Memory fragmentation
+- Alloctaion efficiency (space between, many small gaps -> harder to allocate larger)
+- Performance (less overhead)
+Less flexible however (requires larger contigous space)
+
+fprintf vs fwrite
+fprintf much slower due to formating
+save in variable then in file
+
+Benchmarking, flags
+-O 0-3 optimizes the code. 
+The higher number the more agressive optimization -> larger exe files
+O2 optimizes loops -> large improvements!
+

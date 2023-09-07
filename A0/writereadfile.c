@@ -20,7 +20,6 @@ int main() {
 }
 
 // Function implementations
-
 FILE* open_file(const char *mode) {
     FILE *fp = fopen(MATRIX_FILENAME, mode);
     if (fp == NULL) {
