@@ -14,8 +14,6 @@ void read_matrix();
 int main() {
     create_matrix();
     read_matrix();
-
-    printf("Program executed successfully!\n");
     return 0;
 }
 
