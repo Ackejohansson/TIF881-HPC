@@ -22,15 +22,15 @@ int main() {
 
   // Initialize bs_re, bs_im, cs_re, and cs_im with random values
   for (int i = 0; i < size; i++) {
-      bs_re[i] = (double)rand() / RAND_MAX;
-      bs_im[i] = (double)rand() / RAND_MAX;
-      cs_re[i] = (double)rand() / RAND_MAX;
-      cs_im[i] = (double)rand() / RAND_MAX;
+    bs_re[i] = (double)rand() / RAND_MAX;
+    bs_im[i] = (double)rand() / RAND_MAX;
+    cs_re[i] = (double)rand() / RAND_MAX;
+    cs_im[i] = (double)rand() / RAND_MAX;
   }
 
   // Multiply bs and cs using mul_cpx 30,000 times
   for (int i = 0; i < size; i++) {
-      mul_cpx(&as_re[i], &as_im[i], &bs_re[i], &bs_im[i], &cs_re[i], &cs_im[i]);
+    mul_cpx(&as_re[i], &as_im[i], &bs_re[i], &bs_im[i], &cs_re[i], &cs_im[i]);
   }
 
   // Print one random entry from as
