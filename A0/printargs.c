@@ -28,7 +28,6 @@ int processArguments(int argc, char *argv[], int variables[], bool initialized[]
             return 1;
         }
     }
-
     return 0;
 }
 
