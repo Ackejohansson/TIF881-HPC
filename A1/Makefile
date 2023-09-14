@@ -11,8 +11,6 @@ EXE_DIR = $(OUTPUT_DIR)/exe
 # Optimization levels
 OPTIMIZATION_LEVELS = -O0 -O1 -O2 -O3
 
-
-
 # Default target: compile all optimization levels and all source files
 all: samefile
 
