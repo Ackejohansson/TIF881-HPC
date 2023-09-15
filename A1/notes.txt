@@ -1,0 +1,15 @@
+Assembler
+O3 doesent do anything, hence faster
+
+Valgrind and GDB
+1. OK. 2 heap alloc 2 free
+2. NOK. Segmentation fault.
+3. Runs with memoryleak! Memory in use after exit
+4. Runs but aborts. Invalid free.
+
+GDB
+Segmentation fault
+Points to 0x0 (null)
+
+Inlining
+
