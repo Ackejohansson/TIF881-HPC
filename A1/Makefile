@@ -1,31 +1,35 @@
-# Makefile for compiling C code with different optimization levels
-
 # Compiler
 CC = gcc
 
 # Compiler flags
 CFLAGS_INLINE = -O2 -march=native
 
-# Output directory for generated files
-OUTPUT_DIR = output
-ASM_DIR = $(OUTPUT_DIR)/asm
-EXE_DIR = $(OUTPUT_DIR)/exe
+# Output directory for generated executables
+EXE_DIR = exe
 
-# Default target: compile all optimization levels and all source files
-all: $(EXE_DIR)/samef $(EXE_DIR)/difff
+# Source files
+SAMEFILE_SRC = same_file.c
+DIFFERENTFILE_SRC = different_file.c mul_cpx.c
 
-# Create output directories
-$(OUTPUT_DIR) $(ASM_DIR) $(EXE_DIR):
+# Executable names
+SAMEF = samef
+DIFFF = difff
+
+# Default target: compile both executables
+all: $(EXE_DIR)/$(SAMEF) $(EXE_DIR)/$(DIFFF)
+
+# Create the 'exe' directory if it doesn't exist
+$(EXE_DIR):
 	@mkdir -p $@
 
-$(EXE_DIR)/samef: $(OUTPUT_DIR) samefile.c | $(EXE_DIR)
-	$(CC) $(CFLAGS_INLINE) -o $@ $<
+$(EXE_DIR)/$(SAMEF): $(EXE_DIR) $(SAMEFILE_SRC)
+	$(CC) $(CFLAGS_INLINE) -o $@ $(SAMEFILE_SRC)
 
-$(EXE_DIR)/difff: $(OUTPUT_DIR) different_file.c mul_cpx.c | $(EXE_DIR)
-	$(CC) $(CFLAGS_INLINE) -o $@ $^
+$(EXE_DIR)/$(DIFFF): $(EXE_DIR) $(DIFFERENTFILE_SRC)
+	$(CC) $(CFLAGS_INLINE) -o $@ $(DIFFERENTFILE_SRC)
 
-# Clean generated files
+# Clean generated executables
 clean:
-	@rm -rf $(OUTPUT_DIR)
+	@rm -rf $(EXE_DIR)
 
 .PHONY: all clean
