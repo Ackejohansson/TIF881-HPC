@@ -11,7 +11,17 @@ GDB
 Segmentation fault
 Points to 0x0 (null)
 
-Inlining
+Inlining 
+```
+gcc -O2 -march=native -o samef same_file.c
+hyperfine -w 10 -N ./FILENAME
+```
+
 Benchmark 1: ./samef
-  Time (mean ± σ):       5.6 ms ±   3.3 ms    [User: 4.6 ms, System: 1.2 ms]
-  Range (min … max):     0.5 ms …  12.2 ms    230 runs
+  Time (mean ± σ):       8.5 ms ±   2.9 ms    [User: 6.0 ms, System: 2.3 ms]
+  Range (min … max):     3.6 ms …  12.7 ms    343 runs
+
+Benchmark 2: ./difff
+  Time (mean ± σ):       8.2 ms ±   3.0 ms    [User: 5.8 ms, System: 2.2 ms]
+  Range (min … max):     3.4 ms …  15.8 ms    551 runs
+
