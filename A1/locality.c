@@ -25,34 +25,45 @@ void col_sums(double * sums, const double ** matrix, size_t nrs, size_t ncs){
 }
 
 int main(){
-    double matrix[ROWS][COLS];
-
-    // COmpute the row sums and colum sums of the matrix
-    for (size_t i = 0; i<ROWS; ++i){
-        for (size_t j = 0; j<COLS; ++j){
-            matrix[i][j] = (double)rand()/RAND_MAX;
-        }
+  double *asentries = (double*) malloc(ROWS * COLS * sizeof(double*));
+  double **matrix = (double**) malloc(ROWS * sizeof(double*));
+  for ( int ix = 0; ix < ROWS; ++ix )
+    matrix[ix] = asentries + COLS*ix;
+  
+  if (matrix == NULL || asentries == NULL){
+    printf("Error allocating memory\n");
+    return 1;
+  }
+  
+  // Compute the row sums and colum sums of the matrix
+  for (size_t i = 0; i<ROWS; ++i){
+    for (size_t j = 0; j<COLS; ++j){
+      matrix[i][j] = (double)rand()/RAND_MAX;
     }
+  }
 
-    double rowsums[ROWS];
-    double colsums[COLS];
-    clock_t start_time, end_time;
+  double rowsums[ROWS];
+  double colsums[COLS];
+  clock_t start_time, end_time;
 
 
-    // Run rows
-    start_time = clock();
-    row_sums(rowsums, (const double **)matrix, ROWS, COLS);
-    end_time = clock();
-    printf("Time for row_sums: %lf\n", (double)(end_time - start_time)/CLOCKS_PER_SEC);
+  // Run rows
+  start_time = clock();
+  row_sums(rowsums, (const double **)matrix, ROWS, COLS);
+  end_time = clock();
+  printf("Time for row_sums: %lf\n", (double)(end_time - start_time)/CLOCKS_PER_SEC);
 
-    // Run cols
-    start_time = clock();
-    col_sums(colsums, (const double **)matrix, ROWS, COLS);
-    end_time = clock();
-    printf("Time for col_sums: %lf\n", (double)(end_time - start_time)/CLOCKS_PER_SEC);
+  // Run cols
+  start_time = clock();
+  col_sums(colsums, (const double **)matrix, ROWS, COLS);
+  end_time = clock();
+  printf("Time for col_sums: %lf\n", (double)(end_time - start_time)/CLOCKS_PER_SEC);
 
-    printf("Random element of rowSums: %lf\n", rowsums[500]);
-    printf("Random element of rowCols: %lf\n", colsums[500]);
+  printf("Random element of rowSums: %lf\n", rowsums[500]);
+  printf("Random element of rowCols: %lf\n", colsums[500]);
 
-    return 0;
+  
+  free(matrix);
+  free(asentries);
+  return 0;
 }
