@@ -28,3 +28,12 @@ Benchmark 2: ./difff
 Locality
 Time for row_sums: 0.002574
 Time for col_sums: 0.003259
+
+Rows Benchmark 1: 
+./exe/locality_O2
+  Time (mean ± σ):      27.2 ms ±   4.9 ms    [User: 22.2 ms, System: 4.8 ms]
+  Range (min … max):    18.4 ms …  37.5 ms    1000 runs
+
+./exe/locality_O0
+  Time (mean ± σ):      25.6 ms ±   5.1 ms    [User: 21.5 ms, System: 3.9 ms]
+  Range (min … max):    21.8 ms …  42.7 ms    1000 runs
