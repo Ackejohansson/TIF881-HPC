@@ -25,3 +25,6 @@ Benchmark 2: ./difff
   Time (mean ± σ):       8.2 ms ±   3.0 ms    [User: 5.8 ms, System: 2.2 ms]
   Range (min … max):     3.4 ms …  15.8 ms    551 runs
 
+Locality
+Time for row_sums: 0.002574
+Time for col_sums: 0.003259
