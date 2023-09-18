@@ -18,6 +18,11 @@ difff: $(EXE_DIR)/difff
 $(EXE_DIR)/difff: $(EXE_DIR) different_file.c mul_cpx.c
 	$(CC) $(CFLAGS_INLINE) -o $@ different_file.c mul_cpx.c
 
+locality: $(EXE_DIR)/locality
+$(EXE_DIR)/locality: $(EXE_DIR) locality.c
+	$(CC) -O0 -o $@_O0 locality.c
+	$(CC) -O2 -o $@_O2 locality.c
+
 clean:
 	@rm -rf $(EXE_DIR)
 
