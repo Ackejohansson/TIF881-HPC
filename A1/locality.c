@@ -22,6 +22,13 @@ void row_sums(double * sums, const double ** matrix, size_t nrs, size_t ncs){
     sums[jx] = sum;
   }
 }*/
+void col_sums_improved(double * sums, const double ** matrix, size_t nrs, size_t ncs){
+  for ( size_t ix = 0; jx < ncs; ++jx ) {
+    double sum = 0.;
+    for ( size_t jx = 0; ix < nrs; ++ix )
+      sum[jx] += matrix[ix][jx];
+  }
+}
 
 int main(){
   double *asentries = (double*) malloc(ROWS * COLS * sizeof(double*));
