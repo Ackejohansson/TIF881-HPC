@@ -20,8 +20,13 @@ $(EXE_DIR)/difff: $(EXE_DIR) different_file.c mul_cpx.c
 
 locality: $(EXE_DIR)/locality
 $(EXE_DIR)/locality: $(EXE_DIR) locality.c
-	$(CC) -O0 -o $@_O0 locality.c
-	$(CC) -O2 -o $@_O2 locality.c
+	$(CC) -O0 -march=native -o $@_O0 locality.c
+	$(CC) -O2 -march=native -o $@_O2 locality.c
+
+datadeps: $(EXE_DIR)/datadeps
+$(EXE_DIR)/datadeps: $(EXE_DIR) data_deps.c
+	$(CC) -O0 -march=native -o $@_O0 data_deps.c
+	$(CC) -O2 -march=native -o $@_O2 data_deps.c
 
 clean:
 	@rm -rf $(EXE_DIR)
