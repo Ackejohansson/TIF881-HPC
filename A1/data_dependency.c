@@ -42,6 +42,8 @@ int main(){
 
   row_sums_unrolled2(rowsums, (const double **)matrix, SIZE, SIZE);
   printf("Random element: %lf\n", rowsums[500]);
-  
+
+  free(matrix);
+  free(asentries);
   return 0;
 }
