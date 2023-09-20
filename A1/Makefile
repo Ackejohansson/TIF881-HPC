@@ -28,6 +28,11 @@ $(EXE_DIR)/datadeps: $(EXE_DIR) data_deps.c
 	$(CC) -O0 -march=native -o $@_O0 data_deps.c
 	$(CC) -O2 -march=native -o $@_O2 data_deps.c
 
+indirect: $(EXE_DIR)/indirect
+$(EXE_DIR)/indirect: $(EXE_DIR) indirect_addressing.c
+	$(CC) -O0 -march=native -o $@_O0 indirect_addressing.c
+	$(CC) -O2 -march=native -o $@_O2 indirect_addressing.c
+
 clean:
 	@rm -rf $(EXE_DIR)
 

@@ -39,6 +39,10 @@ int main(){
     size_t jx = p[kx];
     y[jx] += a * x[jx];
   }
+  /* Case with no indirect addressing. No need for p
+  for ( size_t kx = 0; kx < size; ++kx )
+    y[jx] += a * x[kx];
+  */
 
   printf("Random element of y: %lf\n", y[500]);
 
