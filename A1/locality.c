@@ -4,7 +4,6 @@
 #define ROWS 1000
 #define COLS 1000
 
-
 void row_sums(double * sums, const double ** matrix, size_t nrs, size_t ncs){
   for ( size_t ix = 0; ix < nrs; ++ix ) {
     double sum = 0.;
@@ -14,14 +13,15 @@ void row_sums(double * sums, const double ** matrix, size_t nrs, size_t ncs){
   }
 }
 
-/*void col_sums(double * sums, const double ** matrix, size_t nrs, size_t ncs){
+void col_sums(double * sums, const double ** matrix, size_t nrs, size_t ncs){
   for ( size_t jx = 0; jx < ncs; ++jx ) {
     double sum = 0.;
     for ( size_t ix = 0; ix < nrs; ++ix )
       sum += matrix[ix][jx];
     sums[jx] = sum;
   }
-}*/
+}
+
 void col_sums_improved(double * sums, const double ** matrix, size_t nrs, size_t ncs){
   for ( size_t ix = 0; jx < ncs; ++jx ) {
     double sum = 0.;

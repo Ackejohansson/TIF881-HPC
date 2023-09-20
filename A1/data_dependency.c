@@ -35,7 +35,13 @@ int main(){
     printf("Error allocating memory\n");
     return 1;
   }
-  
+  double rowsums[SIZE];
 
+  row_sums(rowsums, (const double **)matrix, SIZE, SIZE);
+  printf("Random element: %lf\n", rowsums[500]);
+
+  row_sums_unrolled2(rowsums, (const double **)matrix, SIZE, SIZE);
+  printf("Random element: %lf\n", rowsums[500]);
+  
   return 0;
 }
