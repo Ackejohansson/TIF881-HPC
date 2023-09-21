@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS_INLINE = -O2 -march=native
 EXE_DIR = exe
 
-all: $(EXE_DIR)/samef $(EXE_DIR)/difff
+all: $(EXE_DIR)/samef $(EXE_DIR)/difff $(EXE_DIR)/locality $(EXE_DIR)/datadeps $(EXE_DIR)/indirect
 
 # Create the 'exe' directory if it doesn't exist
 $(EXE_DIR):
