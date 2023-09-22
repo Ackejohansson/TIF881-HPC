@@ -1,5 +1,6 @@
 Assembler
 O3 doesent do anything, hence faster
+ASM can be very different
 
 ____________________________________________________________________________
 Valgrind and GDB
@@ -10,38 +11,34 @@ Valgrind and GDB
 
 ____________________________________________________________________________
 GDB
-Segmentation fault
+Use when "Segmentation fault"
 Points to 0x0 (null)
 
 ____________________________________________________________________________
 Inlining 
 ```
 gcc -O2 -march=native -o samef same_file.c
-hyperfine -w 10 -N ./FILENAME
+hyperfine -w 10 -N --runs 200000 ./FILENAME
 ```
 
-Benchmark 1: ./samef
-  Time (mean ± σ):       8.5 ms ±   2.9 ms    [User: 6.0 ms, System: 2.3 ms]
-  Range (min … max):     3.6 ms …  12.7 ms    343 runs
+Hard to see difference
+Different file -> more overhead -> slower
 
-Benchmark 2: ./difff
-  Time (mean ± σ):       8.2 ms ±   3.0 ms    [User: 5.8 ms, System: 2.2 ms]
-  Range (min … max):     3.4 ms …  15.8 ms    551 runs
-
+Use Static inline to inline, gains speed at cost of memory
 ____________________________________________________________________________
-Locality
-Time for row_sums: 0.002574
-Time for col_sums: 0.003259
+Locality  - 10000 runs
+O0
+row_sums               2.5872984 ms
+col_sums               3.1777095 ms
+col_sums_improved took 2.8010547 ms
 
-Rows Benchmark 1: 
-./exe/locality_O2
-  Time (mean ± σ):      27.2 ms ±   4.9 ms    [User: 22.2 ms, System: 4.8 ms]
-  Range (min … max):    18.4 ms …  37.5 ms    1000 runs
+O2
+row_sums took          1.0902622 ms
+col_sums took          1.4616230 ms
+col_sums_improved took 0.3291039 ms
 
-./exe/locality_O0
-  Time (mean ± σ):      25.6 ms ±   5.1 ms    [User: 21.5 ms, System: 3.9 ms]
-  Range (min … max):    21.8 ms …  42.7 ms    1000 runs
-
+Row major faster
+Some sort of parralelisation happening in O2? Big diff for improved
 ____________________________________________________________________________
 Data_dependency
 Faster with loop unrolling. 

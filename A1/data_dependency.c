@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define SIZE 1000
 
@@ -24,24 +25,57 @@ void row_sums_unrolled2(double *sums, const double **matrix, size_t nrs, size_t 
   }
 }
 
-
 int main(){
-  double *asentries = (double*) malloc(SIZE*SIZE*sizeof(double*));
+  double *asentries = (double*) malloc(SIZE*SIZE*sizeof(double));
   double **matrix = (double**) malloc(SIZE*sizeof(double*));
-  for (int ix = 0; i < SIZE; ++i)
-    matrix[ix] = asentries + SIZE*ix;
   
   if (matrix == NULL || asentries == NULL){
     printf("Error allocating memory\n");
     return 1;
   }
+
+  for (int ix = 0; ix < SIZE; ++ix)
+    matrix[ix] = asentries + SIZE*ix;
+
+  // Initialize the matrix with random numbers
+  srand(time(NULL));
+  for (int i = 0; i < SIZE; ++i) {
+    for (int j = 0; j < SIZE; ++j) {
+      matrix[i][j] = (double)rand() / RAND_MAX;
+    }
+  }
+
   double rowsums[SIZE];
+  clock_t start, end;
+  double cpu_time_used;
 
-  row_sums(rowsums, (const double **)matrix, SIZE, SIZE);
-  printf("Random element: %lf\n", rowsums[500]);
+  // Benchmark row_sums
+  start = clock();
+  for (int i = 0; i < 5000; i++)
+    row_sums(rowsums, (const double **)matrix, SIZE, SIZE);
 
-  row_sums_unrolled2(rowsums, (const double **)matrix, SIZE, SIZE);
-  printf("Random element: %lf\n", rowsums[500]);
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("Time for row_sums: %lf seconds\n", cpu_time_used);
+  
+  int random_index = rand() % SIZE;
+  printf("Random element from row_sums: %lf\n", rowsums[random_index]);
+
+  for (int i = 0; i < SIZE; ++i)
+    rowsums[i] = 0.0;
+
+
+  // Benchmark row_sums_unrolled2
+  start = clock();
+  for (int i = 0; i < 5000; i++)
+    row_sums_unrolled2(rowsums, (const double **)matrix, SIZE, SIZE);
+
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("Time for row_sums_unrolled2: %lf seconds\n", cpu_time_used);
+  
+  random_index = rand() % SIZE;
+  printf("Random element from row_sums_unrolled2: %lf\n", rowsums[random_index]);
 
   free(matrix);
   free(asentries);
