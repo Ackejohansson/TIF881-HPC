@@ -41,5 +41,16 @@ Row major faster
 Some sort of parralelisation happening in O2? Big diff for improved
 ____________________________________________________________________________
 Data_dependency
-Faster with loop unrolling. 
+Faster with loop unrolling..
 
+____________________________________________________________________________
+Direct vs indirect addressing
+O0
+Time for linear init and update: 3.227389 ms
+Time for jump init and update: 8.937400 ms
+Time for direct address: 2.437977 seconds
+
+O2
+Time for linear init and update: 1.078421 ms
+Time for jump init and update: 8.008319 ms
+Time for direct address: 0.603851 ms
