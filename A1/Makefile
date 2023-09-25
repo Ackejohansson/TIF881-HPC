@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS_INLINE = -O2 -march=native
 EXE_DIR = exe
 
-all: $(EXE_DIR)/samef $(EXE_DIR)/difff $(EXE_DIR)/locality $(EXE_DIR)/datadeps $(EXE_DIR)/indirect
+all: $(EXE_DIR)/samef $(EXE_DIR)/difff $(EXE_DIR)/locality $(EXE_DIR)/datadeps $(EXE_DIR)/indirect $(EXE_DIR)/ssd_hdd
 
 # Create the 'exe' directory if it doesn't exist
 $(EXE_DIR):
@@ -24,14 +24,19 @@ $(EXE_DIR)/locality: $(EXE_DIR) locality.c
 	$(CC) -O2 -march=native -o $@_O2 locality.c
 
 datadeps: $(EXE_DIR)/datadeps
-$(EXE_DIR)/datadeps: $(EXE_DIR) data_deps.c
-	$(CC) -O0 -march=native -o $@_O0 data_deps.c
-	$(CC) -O2 -march=native -o $@_O2 data_deps.c
+$(EXE_DIR)/datadeps: $(EXE_DIR) data_dependency.c
+	$(CC) -O0 -march=native -o $@_O0 data_dependency.c
+	$(CC) -O2 -march=native -o $@_O2 data_dependency.c
 
 indirect: $(EXE_DIR)/indirect
 $(EXE_DIR)/indirect: $(EXE_DIR) indirect_addressing.c
 	$(CC) -O0 -march=native -o $@_O0 indirect_addressing.c
 	$(CC) -O2 -march=native -o $@_O2 indirect_addressing.c
+
+ssd_hdd: $(EXE_DIR)/ssd_hdd
+$(EXE_DIR)/ssd_hdd: $(EXE_DIR) ssd_hdd.c
+	$(CC) -O0 -march=native -o $@_O0 ssd_hdd.c
+	$(CC) -O2 -march=native -o $@_O2 ssd_hdd.c
 
 clean:
 	@rm -rf $(EXE_DIR)

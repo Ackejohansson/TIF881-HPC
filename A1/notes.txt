@@ -54,3 +54,19 @@ O2
 Time for linear init and update: 1.078421 ms
 Time for jump init and update: 8.008319 ms
 Time for direct address: 0.603851 ms
+
+SSD HDD
+____________________________________________________________________________
+O0
+HDD Write Time: 0.006136 seconds
+HDD Read Time: 0.000592 seconds
+
+SSD Write Time: 0.002798 seconds
+SSD Read Time: 0.000568 seconds
+
+O2
+HDD Write Time: 0.008721 seconds
+HDD Read Time: 0.000636 seconds
+
+SSD Write Time: 0.004794 seconds
+SSD Read Time: 0.000614 seconds
