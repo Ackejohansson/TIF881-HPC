@@ -8,22 +8,23 @@
 
 // Function prototypes
 int setMPThreadNumber(int argc, char *argv[], int *MP_threads);
-void read_data();
-void compute_distances();
+void read_data(double *x, double *y, double *z);
+void compute_distances(double *distances, double *x, double *y, double *z);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
   // Set the number of threads
   int MP_threads = -1;
   setMPThreadNumber(argc, argv, &MP_threads);
-  //omp_set_num_threads(MP_threads);
   printf("Number of threads sat to : %d\n", MP_threads);
   
+
   // Read the data to memory
   printf("Reading data...\n");
   double x[SIZE], y[SIZE], z[SIZE];
   read_data(x, y, z);
   printf("\nData read.\n");
+
 
   // Compute the distances
   printf("Computing distances...\n");
@@ -52,6 +53,7 @@ int setMPThreadNumber(int argc, char *argv[], int *MP_threads) {
     fprintf(stderr, "You must provide a value for number of threads ex: -t4\n");
     exit(EXIT_FAILURE);
   }
+  omp_set_num_threads(MP_threads);
   return 0;
 }
 
@@ -66,7 +68,7 @@ void read_data(double *x, double *y, double *z) {
   int i = 0;
   while (fscanf(file, "%lf %lf %lf", &x[i], &y[i], &z[i]) == 3) {
     if (i >= SIZE) {
-      printf("Warning: More than %d data points found. Array size exceeded.\n", i);
+      printf("Warning: More than max data points found. Array size exceeded.\n");
       break;
     }
     i++;
@@ -77,17 +79,14 @@ void read_data(double *x, double *y, double *z) {
     fclose(file);
     exit(EXIT_FAILURE);
   }
-
   fclose(file);
 
-  // Check if any data was read
   if (i == 0) {
     printf("No data found in the file.\n");
     exit(EXIT_SUCCESS); // Exit successfully without an error
   }
 
   printf("Printing the data:\n");
-  // Process the data as needed
   printf("x: ");
   for (int j = 0; j < i; j++) {
     printf("%f ", x[j]);
