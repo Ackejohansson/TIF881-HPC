@@ -52,16 +52,17 @@ void create_matrix() {
 }
 
 void read_matrix() {
-    FILE* fp = open_file("rb");
-    int* matrix = allocate_matrix(SIZE);
-    fread(matrix, sizeof(int), SIZE * SIZE, fp);
-    fclose(fp);
-    
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            assert(matrix[i * SIZE + j] == i * j);
-        }
+  FILE* fp = open_file("cells");
+  int* matrix = allocate_matrix(SIZE);
+  
+  fread(matrix, sizeof(int), SIZE * SIZE, fp);
+  fclose(fp);
+  
+  for (int i = 0; i < SIZE; i++) {
+    for (int j = 0; j < SIZE; j++) {
+      assert(matrix[i * SIZE + j] == i * j);
     }
-    free(matrix);
-    printf("File was successfully read! Elements match the expected.\n");
+  }
+  free(matrix);
+  printf("File was successfully read! Elements match the expected.\n");
 }

@@ -4,12 +4,12 @@
 #include <omp.h>
 #include <unistd.h>
 
-#define SIZE 9
+#define SIZE 10
 
 // Function prototypes
 int setMPThreadNumber(int argc, char *argv[], int *MP_threads);
 void read_data();
-void read_binary_data();
+void compute_distances();
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
@@ -20,19 +20,23 @@ int main(int argc, char *argv[]) {
   printf("Number of threads sat to : %d\n", MP_threads);
   
   // Read the data to memory
-  double x[SIZE], y[SIZE], z[SIZE];
   printf("Reading data...\n");
-  //read_binary_data();
+  double x[SIZE], y[SIZE], z[SIZE];
   read_data(x, y, z);
   printf("\nData read.\n");
 
   // Compute the distances
   printf("Computing distances...\n");
-  double distances[SIZE*SIZE/2];
+  int total_distances = SIZE*(SIZE-1)/2;
+  double distances[total_distances];
+  for (int i = 0; i < total_distances; i++)
+    distances[i] = -1.0;
+  
   compute_distances(distances, x, y, z);
 
-
-
+  for (int i = 0; i < total_distances; i++)
+    printf("%lf ", distances[i]);
+  printf("\nDistances computed.\n");
   return 0;
 }
 
@@ -61,11 +65,11 @@ void read_data(double *x, double *y, double *z) {
 
   int i = 0;
   while (fscanf(file, "%lf %lf %lf", &x[i], &y[i], &z[i]) == 3) {
-    i++;
     if (i >= SIZE) {
-      printf("Warning: More than %d data points found. Array size exceeded.\n", SIZE);
+      printf("Warning: More than %d data points found. Array size exceeded.\n", i);
       break;
     }
+    i++;
   }
 
   if (ferror(file)) {
@@ -84,16 +88,26 @@ void read_data(double *x, double *y, double *z) {
 
   printf("Printing the data:\n");
   // Process the data as needed
+  printf("x: ");
   for (int j = 0; j < i; j++) {
     printf("%f ", x[j]);
   }
+  printf("\ny: ");
+  for (int j = 0; j < i; j++) {
+    printf("%f ", y[j]);
+  }
+  printf("\nz: ");
+  for (int j = 0; j < i; j++) {
+    printf("%f ", z[j]);
+  }
 }
 
-void compute_distances(double *distances, double *x, double *y, double *z){
+void compute_distances(double *distances, double *x, double *y, double *z) {
   int index = 0;
-  for (int i = 0; i < SIZE; i++)
-    for (int j = i+1; j < SIZE; j++) {
-      distances[index] = sqrt(pow(x[i]-x[j],2) + pow(y[i]-y[j],2) + pow(z[i]-z[j],2));
+  for (int i = 0; i < SIZE; i++) {
+    for (int j = i + 1; j < SIZE; j++) {
+      distances[index] = sqrt(pow(x[j]-x[i],2)+pow(y[j]-y[i],2)+pow(z[j]-z[i],2));
       index++;
     }
+  }
 }
