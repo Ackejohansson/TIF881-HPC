@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < total_distances; i++)
     printf("%lf ", distances[i]);
   printf("\nDistances computed.\n");
+  
   return 0;
 }
 
@@ -53,7 +54,7 @@ int setMPThreadNumber(int argc, char *argv[], int *MP_threads) {
     fprintf(stderr, "You must provide a value for number of threads ex: -t4\n");
     exit(EXIT_FAILURE);
   }
-  omp_set_num_threads(MP_threads);
+  //omp_set_num_threads(MP_threads);
   return 0;
 }
 
