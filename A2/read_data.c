@@ -34,9 +34,9 @@ int main(){
     for (int j = i+1; j < NR_CELLS; j++){
       cell_ptr += cell_byte;
       sscanf(cell_ptr, "%lf %lf %lf", &x2, &y2, &z2);
-      // Calculate distance
+      
       double distance = sqrt(pow(x1-x2, 2) + pow(y1-y2, 2) + pow(z1-z2, 2))*100;
-      printf("Distance between cell %d and cell %d: %lf\n", i, j, distance);
+      printf("Distance between cell %d and %d: %lf\n", i, j, distance);
     }
   }
   printf("x1: %lf, y1: %lf, z1: %lf\n", x1, y1, z1);

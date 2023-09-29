@@ -4,46 +4,80 @@
 #include <omp.h>
 #include <unistd.h>
 
-#define SIZE 10
+#define NR_READ 3
+#define NR_CELLS 10
+#define TOT_DIST 3465
 
 // Function prototypes
-int setMPThreadNumber(int argc, char *argv[], int *MP_threads);
-void read_data(double *x, double *y, double *z);
-void compute_distances(double *distances, double *x, double *y, double *z);
+//int setMPThreadNumber(int argc, char *argv[], int *MP_threads);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
   // Set the number of threads
-  int MP_threads = -1;
-  setMPThreadNumber(argc, argv, &MP_threads);
+  int MP_threads = 1;
+  //setMPThreadNumber(argc, argv, &MP_threads);
   printf("Number of threads sat to : %d\n", MP_threads);
   
 
   // Read the data to memory
   printf("Reading data...\n");
-  double x[SIZE], y[SIZE], z[SIZE];
-  read_data(x, y, z);
-  printf("\nData read.\n");
+  double x1, y1, z1, x2, y2, z2;
+  const size_t cell_byte = sizeof("+00.000 -00.000 +00.000");
+  char *block = malloc(cell_byte * NR_CELLS);
+  char *cell_ptr = block;
+  printf("Cell byte size: %zu\n", cell_byte);
 
-
-  // Compute the distances
-  printf("Computing distances...\n");
-  int total_distances = SIZE*(SIZE-1)/2;
-  double distances[total_distances];
-  for (int i = 0; i < total_distances; i++)
-    distances[i] = -1.0;
+  FILE *file = fopen("./cells", "r");
+  if (file == NULL) {
+    perror("Error opening file");
+    exit(EXIT_FAILURE);
+  }
   
-  compute_distances(distances, x, y, z);
+  int output[TOT_DIST] = {0};
+  int index = 0;
+  for (int i = 0; i < NR_CELLS-1; ++i){
+    size_t nr_read = fread(block, cell_byte, 1, file);
+    sscanf(block, "%lf %lf %lf", &x1, &y1, &z1);
+    
+    for (int j = i+1; j < NR_CELLS; j += NR_READ){
+      size_t nr_cells_read = fread(block, cell_byte, NR_READ, file);
+      cell_ptr = block;
 
-  for (int i = 0; i < total_distances; i++)
-    printf("%lf ", distances[i]);
-  printf("\nDistances computed.\n");
-  
+        for (int k = 0; k < nr_cells_read; k++){
+          sscanf(cell_ptr, "%lf %lf %lf", &x2, &y2, &z2);
+          
+          double distance = (sqrt(pow(x2-x1,2)+pow(y2-y1,2)+pow(z2-z1,2))*100);
+          int dist = (int)round(distance);
+          printf("Distance: %d\n", dist);
+          printf("(%lf %lf %lf) (%lf %lf %lf)\n", x1, y1, z1, x2, y2, z2);
+          output[dist] += 1;
+          cell_ptr += cell_byte;
+          index++;
+        }
+    }
+    // DIFFERENT LOCALLY AND ON GANTENB. Exclude i+1 in ganten.
+    fseek(file, (i + 1) * cell_byte+i+1, SEEK_SET);
+  }
+  printf("Index: %d\n", index);
+  printf("x1: %lf, y1: %lf, z1: %lf\n", x1, y1, z1);
+  printf("x2: %lf, y2: %lf, z2: %lf\n", x2, y2, z2);
+  fclose(file);
+  free(block);
+  printf("Data read.\n");
+
+  // Print output
+  printf("Printing output...\n");
+  for (int i = 0; i < TOT_DIST; ++i){
+    if (output[i] != 0){
+      printf("%.2f %i\n", i / 100.0, output[i]);
+    }
+  }
+
   return 0;
 }
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+/*
 int setMPThreadNumber(int argc, char *argv[], int *MP_threads) {
   int option;
   while ((option = getopt(argc, argv, "t:")) != -1)
@@ -56,58 +90,4 @@ int setMPThreadNumber(int argc, char *argv[], int *MP_threads) {
   }
   //omp_set_num_threads(MP_threads);
   return 0;
-}
-
-void read_data(double *x, double *y, double *z) {
-  FILE *file = fopen("./cells", "r");
-
-  if (file == NULL) {
-    perror("Error opening file");
-    exit(EXIT_FAILURE);
-  }
-
-  int i = 0;
-  while (fscanf(file, "%lf %lf %lf", &x[i], &y[i], &z[i]) == 3) {
-    if (i >= SIZE) {
-      printf("Warning: More than max data points found. Array size exceeded.\n");
-      break;
-    }
-    i++;
-  }
-
-  if (ferror(file)) {
-    perror("Error reading data from file");
-    fclose(file);
-    exit(EXIT_FAILURE);
-  }
-  fclose(file);
-
-  if (i == 0) {
-    printf("No data found in the file.\n");
-    exit(EXIT_SUCCESS); // Exit successfully without an error
-  }
-
-  printf("Printing the data:\n");
-  printf("x: ");
-  for (int j = 0; j < i; j++) {
-    printf("%f ", x[j]);
-  }
-  printf("\ny: ");
-  for (int j = 0; j < i; j++) {
-    printf("%f ", y[j]);
-  }
-  printf("\nz: ");
-  for (int j = 0; j < i; j++) {
-    printf("%f ", z[j]);
-  }
-}
-
-void compute_distances(double *distances, double *x, double *y, double *z) {
-  int index = 0;
-  for (int i = 0; i < SIZE; i++) {
-    for (int j = i + 1; j < SIZE; j++) {
-      distances[index] = sqrt(pow(x[j]-x[i],2)+pow(y[j]-y[i],2)+pow(z[j]-z[i],2));
-      index++;
-    }
-  }
-}
+}*/

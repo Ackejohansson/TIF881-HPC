@@ -1,0 +1,10 @@
+1. fread + sscanf/Custom  or  fscanf. 
+
+2. Save from block to 3 new arrays. Takes memory. 
+   Worth to take smaller ammount to use the stack?
+
+3. memcp
+
+
+
+0,31 sek

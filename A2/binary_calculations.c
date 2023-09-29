@@ -6,7 +6,10 @@ void addNumbers(char* num1_mem, char* num2_mem) {
     
     // Interpret memory blocks as doubles
     sscanf(num1_mem, "%lf", &num1);
-    sscanf(num2_mem, "%lf", &curr_num);
+    for (int i=1; i<3; ++i){
+      sscanf(num2_mem, "%lf", &curr_num);
+
+    }
 
     // Perform the addition
     result = num1 + curr_num;
@@ -17,6 +20,7 @@ void addNumbers(char* num1_mem, char* num2_mem) {
 
 int main() {
     char num1_mem[] = "+00.001";
+    char num2_mem[] = "-03.020";
     char num2_mem[] = "-03.020";
 
     addNumbers(num1_mem, num2_mem);
