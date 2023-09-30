@@ -13,3 +13,13 @@ Copy from local file to remote
 ```bash
 scp -r c:/Users/axelg/Documents/Chalmers/CAS2/TMA881-HPC/A1 hpcuser074@gantenbein.math.chalmers.se:./dev
 ```
+
+## A2
+Create tar file:
+```bash
+tar -czvf cell_distances.tar.gz Makefile cell_distances.c
+```
+Test script :
+```bash
+/home/hpc2023/cell_distances/check_submission.jl /home/hpcuser074/dev/a2/cell_distances.tar.gz
+```

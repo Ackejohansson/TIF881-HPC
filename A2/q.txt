@@ -6,5 +6,17 @@
 3. memcp
 
 
-
+Timing max: 
 0,31 sek
+
+
+Create tar file:
+tar -czvf cell_distances.tar.gz Makefile cell_distances.c
+
+Test script 
+/home/hpc2023/cell_distances/check_submission.jl /home/hpcuser074/dev/a2/cell_distances.tar.gz
+
+
+Benchmark 1:
+  Time (mean ± σ):     31.644 s ±  0.297 s    [User: 31.402 s, System: 0.158 s]
+  Range (min … max):   30.930 s … 31.996 s    10 runs
