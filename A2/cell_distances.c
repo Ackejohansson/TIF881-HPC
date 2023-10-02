@@ -25,11 +25,14 @@ int main(int argc, char *argv[]) {
     perror("Error opening file");
     exit(EXIT_FAILURE);
   }
+
+  //Compute the number of cells in the file
   fseek(file, 0, SEEK_END);
   long file_size = ftell(file);
   const size_t cell_byte = sizeof("+00.000 -00.000 +00.000");
   size_t nr_cells = file_size / cell_byte;
   
+  // Allocate memory
   double x1, y1, z1, x2, y2, z2;
   char *block = malloc(cell_byte * nr_cells);
   char *cell_ptr = block;
@@ -48,10 +51,13 @@ int main(int argc, char *argv[]) {
       cell_ptr = block;
 
         for (int k = 0; k < nr_cells_read; k++){
+
           sscanf(cell_ptr, "%lf %lf %lf", &x2, &y2, &z2);
-          
+
+
           double distance = (sqrt(pow(x2-x1,2)+pow(y2-y1,2)+pow(z2-z1,2))*100);
           int dist = (int)round(distance);
+          //(int)(sqrt(dist) * 100.0f + 0.5f);
           printf("Distance: %d\n", dist);
           printf("(%lf %lf %lf) (%lf %lf %lf)\n", x1, y1, z1, x2, y2, z2);
           output[dist] += 1;
@@ -59,8 +65,8 @@ int main(int argc, char *argv[]) {
           index++;
         }
     }
-    // DIFFERENT LOCALLY AND ON GANTENB. Exclude i+1 in ganten.
-    fseek(file, (i + 1) * cell_byte+i+1, SEEK_SET);
+    // DIFFERENT LOCALLY AND ON GANTENB. Exclude + i+1 in ganten.
+    fseek(file, (i+1)*cell_byte + i+1, SEEK_SET);
   }
   printf("Index: %d\n", index);
   printf("x1: %lf, y1: %lf, z1: %lf\n", x1, y1, z1);

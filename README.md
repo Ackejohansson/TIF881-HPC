@@ -23,3 +23,13 @@ Test script :
 ```bash
 /home/hpc2023/cell_distances/check_submission.jl /home/hpcuser074/dev/a2/cell_distances.tar.gz
 ```
+
+To test perf compile with g flag
+```
+gcc -O2 -lm -march=native -g cell_distances ./cell_distances.c
+```
+
+Then run:
+```
+perf record -e cpu-cycles ./cell_distances
+```

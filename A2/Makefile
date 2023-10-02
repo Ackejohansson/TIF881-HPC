@@ -8,5 +8,7 @@ cell_distances: cell_distances.c
 
 clean:
 	rm -f cell_distances
+	rm -r cell_distances
+	rm -r extracted
 
 .PHONY: all clean
