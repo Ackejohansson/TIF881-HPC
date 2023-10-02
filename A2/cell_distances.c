@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #define NR_READ 3
-#define NR_CELLS 10
 #define TOT_DIST 3465
 
 // Function prototypes
@@ -21,25 +20,30 @@ int main(int argc, char *argv[]) {
 
   // Read the data to memory
   printf("Reading data...\n");
-  double x1, y1, z1, x2, y2, z2;
-  const size_t cell_byte = sizeof("+00.000 -00.000 +00.000");
-  char *block = malloc(cell_byte * NR_CELLS);
-  char *cell_ptr = block;
-  printf("Cell byte size: %zu\n", cell_byte);
-
   FILE *file = fopen("./cells", "r");
   if (file == NULL) {
     perror("Error opening file");
     exit(EXIT_FAILURE);
   }
+  fseek(file, 0, SEEK_END);
+  long file_size = ftell(file);
+  const size_t cell_byte = sizeof("+00.000 -00.000 +00.000");
+  size_t nr_cells = file_size / cell_byte;
+  
+  double x1, y1, z1, x2, y2, z2;
+  char *block = malloc(cell_byte * nr_cells);
+  char *cell_ptr = block;
+  printf("Cell byte size: %zu\n", cell_byte);
+  printf("Number of cells: %zu\n", nr_cells);
+
   
   int output[TOT_DIST] = {0};
   int index = 0;
-  for (int i = 0; i < NR_CELLS-1; ++i){
+  for (int i = 0; i < nr_cells-1; ++i){
     size_t nr_read = fread(block, cell_byte, 1, file);
     sscanf(block, "%lf %lf %lf", &x1, &y1, &z1);
     
-    for (int j = i+1; j < NR_CELLS; j += NR_READ){
+    for (int j = i+1; j < nr_cells; j += NR_READ){
       size_t nr_cells_read = fread(block, cell_byte, NR_READ, file);
       cell_ptr = block;
 
