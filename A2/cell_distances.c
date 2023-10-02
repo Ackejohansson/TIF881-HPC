@@ -9,13 +9,13 @@
 #define TOT_DIST 3465
 
 // Function prototypes
-//int setMPThreadNumber(int argc, char *argv[], int *MP_threads);
+int setMPThreadNumber(int argc, char *argv[], int *MP_threads);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
   // Set the number of threads
   int MP_threads = 1;
-  //setMPThreadNumber(argc, argv, &MP_threads);
+  setMPThreadNumber(argc, argv, &MP_threads);
   printf("Number of threads sat to : %d\n", MP_threads);
   
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 }
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-/*
+
 int setMPThreadNumber(int argc, char *argv[], int *MP_threads) {
   int option;
   while ((option = getopt(argc, argv, "t:")) != -1)
@@ -90,4 +90,4 @@ int setMPThreadNumber(int argc, char *argv[], int *MP_threads) {
   }
   //omp_set_num_threads(MP_threads);
   return 0;
-}*/
+}
