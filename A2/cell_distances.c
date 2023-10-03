@@ -7,6 +7,7 @@
 
 #define TOT_DIST 3465
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
   // Set the number of threads
@@ -32,42 +33,36 @@ int main(int argc, char *argv[]) {
   size_t nr_cells = file_size / cell_byte;
   printf("Number of cells: %zu\n", nr_cells);
   
+  // Allocate memory
+  int cells_read_max = 10;
+  if (nr_cells < cells_read_max)
+    cells_read_max = nr_cells;
+  int nr_blocks = ceil(nr_cells / cells_read_max);
+  int matrix_block[cells_read_max][3];
+  int base_cell[3] = {0, 0, 0};
 
-  int max_nr_cells = 10;
-  if (nr_cells < max_nr_cells)
-    max_nr_cells = nr_cells;
-  int nr_blocks = nr_cells / max_nr_cells + 1; // COulb be error here
 
-  //short* cell_block = (short*)aligned_alloc(64, sizeof(short*) * max_nr_cells * 3);
-  //short** matrix_block = (short**)aligned_alloc(64, sizeof(short*) * max_nr_cells);
-  short* cell_block = (short*)malloc(sizeof(short*) * max_nr_cells * 3);
-  short** matrix_block = (short**)malloc(sizeof(short*) * max_nr_cells);
-  short base_cell[3] = {0, 0, 0};
-
-  for (size_t i = 0; i < max_nr_cells; i++)
-    matrix_block[i] = cell_block + i * 3;
-  
-  short base_cell[3] = {0, 0, 0};
-  for(int i=0; i<max_nr_cells; i++){
+  for(int i=0; i<cells_read_max; i++){
     char cell[cell_byte+1];
-    fseek(file, i*cell_byte, SEEK_SET);
-    fgets(cell, cell_byte+1, file);
-    base_cell = parse(cell);
+    fscanf(file, "%d %d %d", &base_cell[0], &base_cell[1], &base_cell[2]);
     for (int j=0; j<nr_blocks; j++){
-      for (int k=0; k<max_nr_cells; k++){
-        fgets(cell, cell_byte+1, file);
-        matrix[i][j] = parse(cell);
+      for (int k=0; k<cells_read_max; k++){
+        fscanf(file, "%hd %hd %hd", &matrix_block[k][0], &matrix_block[k][1], &matrix_block[k][2])
       }
-      compute_distance(base_cell, matrix[i][j]);
+      for (int k=0; k<cells_read_max; k++){
+        int sq_xdiff = (matrix_block[k][0]-base_cell[0])*(matrix_block[k][0]-base_cell[0]);
+        int sq_ydiff = (matrix_block[k][1]-base_cell[1])*(matrix_block[k][1]-base_cell[1]);
+        int sq_zdiff = (matrix_block[k][2]-base_cell[2])*(matrix_block[k][2]-base_cell[2]);
+        int dist = (int)sqrtf(sq_xdiff + sq_ydiff + sq_zdiff)*100.0f + 0.5f;
+      }
     }
-    
-    }
+  }
 
   // Print all numbers in matrix 
   printf("Printing matrix...\n");
-  for (int i=0; i<max_nr_cells; ++i){
+  for (int i=0; i<cells_read_max; ++i){
     for (int j=0; j<3; ++j){
-      printf("%hd ", matrix_block[i][j]);
+      printf("%d ", matrix_block[i][j]);
     }
     printf("\n");
   }
@@ -91,6 +86,6 @@ void parse(){
       printf("Cell first: %s\n", num[0]);
       printf("Cell second: %s\n", num[1]);
 
-      printf("%hd\n", (short)atoi(num));
-      matrix_block[i][j] = (short)atoi(num); // TODO: Find a better way of doing this
+      printf("%hd\n", (int)atoi(num));
+      matrix_block[i][j] = (int)atoi(num); // TODO: Find a better way of doing this
 }
