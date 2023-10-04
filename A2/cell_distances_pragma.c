@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
   if (ptr) {
     nr_threads = strtol(++ptr, NULL, 10);
   }
-  //omp_set_num_threads(nr_threads);
+  omp_set_num_threads(nr_threads);
   printf("Number of threads sat to : %d\n", nr_threads);
   
   // Open file
@@ -62,17 +62,17 @@ int main(int argc, char *argv[]) {
       }
       // Calculate distances
       //printf("Calculating distances...\n");
-      for (int k=0; k<index; k++){ // cant start on 0?
-        double sq_xdiff = (matrix_block[k][0]-xBase)*(matrix_block[k][0]-xBase);
-        double sq_ydiff = (matrix_block[k][1]-yBase)*(matrix_block[k][1]-yBase);
-        double sq_zdiff = (matrix_block[k][2]-zBase)*(matrix_block[k][2]-zBase);
-        double distance = sqrt(sq_xdiff + sq_ydiff + sq_zdiff)*100;
-        //printf("Distance: %f\n", distance);
+      #pragma omp parallel for shared(matrix_block, distances, index, xBase, yBase, zBase) reduction(+:distances[:TOT_DIST])
+      for (int k = 0; k < index; k++) {
+        double sq_xdiff = (matrix_block[k][0] - xBase) * (matrix_block[k][0] - xBase);
+        double sq_ydiff = (matrix_block[k][1] - yBase) * (matrix_block[k][1] - yBase);
+        double sq_zdiff = (matrix_block[k][2] - zBase) * (matrix_block[k][2] - zBase);
+        double distance = sqrt(sq_xdiff + sq_ydiff + sq_zdiff) * 100;
+        // printf("Distance: %f\n", distance);
         int dist = (int)round(distance);
-        //printf("Distance: %d\n", dist);
-        //printf("Difference done...\n");
-        ++distances[dist];
-        ++counter;
+        // printf("Distance: %d\n", dist);
+        // printf("Difference done...\n");
+        distances[dist]++;
       }
     }
   }

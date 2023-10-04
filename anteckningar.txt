@@ -1,0 +1,18 @@
+Föreläsning om String parsing
+
+Slower cause of locality
+
+Faster to take -'0' for each char and multiply with the factor 
+then for minus if s[0] == '-' then return -x
+
+could do return (',' - s[0]) * x, which was Faster yeasrs ago. More consise.
+
+mark with () to split work on fpu for example a lots of addition
+
+
+
+Use short, convert to float when taking the square. 3 conversions but 3 FLU so done in paralell
+
+
+Subdivide loops
+Use larger blocksizes
