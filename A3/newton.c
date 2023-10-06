@@ -11,13 +11,8 @@
 #include <complex.h>
 #include <string.h>
 
-static inline double complex fofx(double complex x, int d){
-  return cpow(x, d) - 1.0;
-}
-
-static inline double complex fprimeofx(double complex x, int d){
-  return d * cpow(x, d - 1);
-}
+typedef int TYPE_ATTR;
+typedef short TYPE_CONV;
 
 static inline void parse_args(int argc, char *argv[], int *num_threads, int *size, int *d){
   char *ptr;
@@ -42,25 +37,31 @@ static inline void parse_args(int argc, char *argv[], int *num_threads, int *siz
   printf("Degree of polynomial: %d\n", *d);
 }
 
-void allocateMemory(int size, double complex ***matrix_attractor, int ***matrix_convergence) {
-  double complex *attractor_data = (double complex *)malloc(size * size * sizeof(double complex));
-  int *convergence_data = (int *)malloc(size * size * sizeof(int));
-  if (attractor_data == NULL || convergence_data == NULL) {
-    perror("Memory allocation failed");
-    exit(EXIT_FAILURE);
-  }
-  
-  *matrix_attractor = (double complex **)malloc(size * sizeof(double complex *));
-  *matrix_convergence = (int **)malloc(size * sizeof(int *));
-  if (*matrix_attractor == NULL || *matrix_convergence == NULL) {
+void allocateMemory(int size, TYPE_ATTR ***attractors, TYPE_CONV ***convergences) {
+  // Allocate memory for attractors and convergences using custom data types
+  *attractors = (TYPE_ATTR **)malloc(size * sizeof(TYPE_ATTR *));
+  *convergences = (TYPE_CONV **)malloc(size * sizeof(TYPE_CONV *));
+  if (*attractors == NULL || *convergences == NULL) {
     perror("Memory allocation failed");
     exit(EXIT_FAILURE);
   }
 
   for (int i = 0; i < size; i++) {
-    (*matrix_attractor)[i] = &attractor_data[i * size];
-    (*matrix_convergence)[i] = &convergence_data[i * size];
+    (*attractors)[i] = (TYPE_ATTR *)malloc(size * sizeof(TYPE_ATTR));
+    (*convergences)[i] = (TYPE_CONV *)malloc(size * sizeof(TYPE_CONV));
+    if ((*attractors)[i] == NULL || (*convergences)[i] == NULL) {
+      perror("Memory allocation failed");
+      exit(EXIT_FAILURE);
+    }
   }
+}
+
+static inline double complex fofx(double complex x, int d){
+  return cpow(x, d) - 1.0;
+}
+
+static inline double complex fprimeofx(double complex x, int d){
+  return d * cpow(x, d - 1);
 }
 
 static inline void compute_distances(int size, int d, double complex **matrix_attractor, int **matrix_convergence){
@@ -72,7 +73,7 @@ static inline void compute_distances(int size, int d, double complex **matrix_at
     for (int j = 0; j < size; j++){
       int iter = 0;
       x_old = a - ((double)j/size+2.0)*I;
-      for(int iter=0; iter < max_iter; iter++){
+      for(int i=0; i < max_iter; i++){
         x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);
         
         if (cabs(fofx(x_new, d)) < 1e-3) {
@@ -96,25 +97,22 @@ int main(int argc, char *argv[]){
   int d = 2;
   //parse_args(argc, argv, &num_threads, &size, &d);
 
-  // Allocate memory
-  double complex **matrix_attractor;
-  int **matrix_convergence;
-  allocateMemory(size, &matrix_attractor, &matrix_convergence);
+  // Allocate memory for attractors and convergences
+  TYPE_ATTR **attractors;
+  TYPE_CONV **convergences;
+  allocateMemory(size, &attractors, &convergences);
+  // Compute attractors and convergences
+  compute_distances(size, d, attractors, convergences);
 
-  // Compute the distances 
-  compute_distances(size, d, matrix_attractor, matrix_convergence);
 
   
   // Print result 
   printf("Result:\n");
-  for (int i = 0; i < size; i++){
-    for (int j = 0; j < size; j++){
-      printf("%f + %fi \n", creal(matrix_attractor[i][j]), cimag(matrix_attractor[i][j]));
-    }
+  for (int i = 0; i < size; i++) {
+    free(attractors[i]);
+    free(convergences[i]);
   }
-  free(*matrix_attractor);
-  free(*matrix_convergence);
-  free(matrix_attractor);
-  free(matrix_convergence);
+  free(attractors);
+  free(convergences);
   return 0;
 }
