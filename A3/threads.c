@@ -60,10 +60,6 @@ main_thrd(
     status[tx].val = ix + istep;
     mtx_unlock(mtx);
     cnd_signal(cnd);
-
-    // In order to illustrate thrd_sleep and to force more synchronization
-    // points, we sleep after each line for one micro seconds.
-    thrd_sleep(&(struct timespec){.tv_sec=0, .tv_nsec=1000}, NULL);
   }
 
   return 0;
