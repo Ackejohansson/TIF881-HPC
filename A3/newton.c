@@ -1,68 +1,38 @@
-/*
-  Parse the command line
-  Synchronize the threads
-  Data transfer between threads
-  Check convergence of the solution
-  Computation of next iteration
-  Write to file
-*/
-#include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
-#include <complex.h>
+#include <stdio.h>
 #include <string.h>
+#include <threads.h>
 
 typedef int TYPE_ATTR;
 typedef short TYPE_CONV;
 
-static inline void parse_args(int argc, char *argv[], int *num_threads, int *size, int *d){
-  char *ptr;
-  if (argc == 4) {
-    for (int i = 1; i < argc - 1; i++) {
-      ptr = strchr(argv[i], 't');
-      if (ptr)
-        *num_threads = strtol(++ptr, NULL, 10);
-      else {
-        ptr = strchr(argv[i], 'l');
-        *size = strtol(++ptr, NULL, 10);
-      }
-    }
-    *d = strtol(argv[argc - 1], NULL, 10);
-  } else {
-    printf("Not enough arguments\n");
-    printf("Usage: newton -t<numberOfThreads> -l<numberOfLines> <degreeOfPolynomial>\n");
-    exit(EXIT_FAILURE);
-  }
-  printf("Number of threads: %d\n", *num_threads);
-  printf("Size of grid: %d\n", *size);
-  printf("Degree of polynomial: %d\n", *d);
-}
+typedef struct {
+  int val;
+  char pad[60]; // cacheline - sizeof(int)
+} int_padded;
 
-void allocateMemory(int size, TYPE_ATTR ***attractors, TYPE_CONV ***convergences) {
-  // Allocate memory for attractors and convergences using custom data types
-  *attractors = (TYPE_ATTR **)malloc(size * sizeof(TYPE_ATTR *));
-  *convergences = (TYPE_CONV **)malloc(size * sizeof(TYPE_CONV *));
-  if (*attractors == NULL || *convergences == NULL) {
-    perror("Memory allocation failed");
-    exit(EXIT_FAILURE);
-  }
+typedef struct {
+  const float **v;
+  float **w;
+  int ib;
+  int istep;
+  int sz;
+  int tx;
+  mtx_t *mtx;
+  cnd_t *cnd;
+  int_padded *status;
+} thrd_info_t;
 
-  for (int i = 0; i < size; i++) {
-    (*attractors)[i] = (TYPE_ATTR *)malloc(size * sizeof(TYPE_ATTR));
-    (*convergences)[i] = (TYPE_CONV *)malloc(size * sizeof(TYPE_CONV));
-    if ((*attractors)[i] == NULL || (*convergences)[i] == NULL) {
-      perror("Memory allocation failed");
-      exit(EXIT_FAILURE);
-    }
-  }
-}
-
-static inline double complex fofx(double complex x, int d){
-  return cpow(x, d) - 1.0;
-}
-
-static inline double complex fprimeofx(double complex x, int d){
-  return d * cpow(x, d - 1);
-}
+typedef struct {
+  const float **v;
+  float **w;
+  int sz;
+  int nthrds;
+  mtx_t *mtx;
+  cnd_t *cnd;
+  int_padded *status;
+} thrd_info_check_t;
 
 static inline void compute_distances(int size, int d, double complex **matrix_attractor, int **matrix_convergence){
   double tol = 1e-6;
@@ -90,29 +60,148 @@ static inline void compute_distances(int size, int d, double complex **matrix_at
   }
 }
 
-int main(int argc, char *argv[]){
-  // Parse arguments
-  int num_threads = 1;
-  int size = 10;
-  int d = 2;
-  //parse_args(argc, argv, &num_threads, &size, &d);
+int main_thrd(void *args){
+  const thrd_info_t *thrd_info = (thrd_info_t*) args;
+  const float **v = thrd_info->v;
+  float **w = thrd_info->w;
+  const int ib = thrd_info->ib;
+  const int istep = thrd_info->istep;
+  const int sz = thrd_info->sz;
+  const int tx = thrd_info->tx;
+  mtx_t *mtx = thrd_info->mtx;
+  cnd_t *cnd = thrd_info->cnd;
+  int_padded *status = thrd_info->status;
 
-  // Allocate memory for attractors and convergences
-  TYPE_ATTR **attractors;
-  TYPE_CONV **convergences;
-  allocateMemory(size, &attractors, &convergences);
-  // Compute attractors and convergences
-  compute_distances(size, d, attractors, convergences);
+  for ( int ix = ib; ix < sz; ix += istep ) {
+    const float *vix = v[ix];
+    // We allocate the rows of the result before computing, and free them in another thread.
+    float *wix = (float*) malloc(sz*sizeof(float));
 
+    for ( int jx = 0; jx < sz; ++jx )
+      wix[jx] = sqrtf(vix[jx]);
 
-  
-  // Print result 
-  printf("Result:\n");
-  for (int i = 0; i < size; i++) {
-    free(attractors[i]);
-    free(convergences[i]);
+    mtx_lock(mtx);
+    w[ix] = wix;
+    status[tx].val = ix + istep;
+    mtx_unlock(mtx);
+    cnd_signal(cnd);
   }
-  free(attractors);
-  free(convergences);
+
+  return 0;
+}
+
+int main_thrd_check(void *args){
+  const thrd_info_check_t *thrd_info = (thrd_info_check_t*) args;
+  const float **v = thrd_info->v;
+  float **w = thrd_info->w;
+  const int sz = thrd_info->sz;
+  const int nthrds = thrd_info->nthrds;
+  mtx_t *mtx = thrd_info->mtx;
+  cnd_t *cnd = thrd_info->cnd;
+  int_padded *status = thrd_info->status;
+
+  for ( int ix = 0, ibnd; ix < sz; ) {
+    // Compute min if new row available
+    for ( mtx_lock(mtx); ; ) {
+      ibnd = sz;
+      for ( int tx = 0; tx < nthrds; ++tx )
+        if ( ibnd > status[tx].val )
+          ibnd = status[tx].val;
+
+      if ( ibnd <= ix )
+        cnd_wait(cnd,mtx);
+      else {
+        mtx_unlock(mtx);
+        break;
+      }
+    }
+
+    fprintf(stderr, "checking until %i\n", ibnd);
+    // Perform check 
+    // Here we can write to file if ibnd is larger than threshold
+    for ( ; ix < ibnd; ++ix )
+      free(w[ix]);
+  }
+
+  return 0;
+}
+
+
+
+int main(){
+  const int sz = 50;
+
+  float *ventries = (float*) malloc(sz*sz*sizeof(float));
+  float **v = (float**) malloc(sz*sizeof(float*));  
+  
+  for ( int ix = 0, jx = 0; ix < sz; ++ix, jx += sz )
+    v[ix] = ventries + jx;
+  for ( int ix = 0; ix < sz*sz; ++ix )
+    ventries[ix] = ix;
+  
+  float **w = (float**) malloc(sz*sizeof(float*));
+
+  const int nthrds = 8;
+  thrd_t thrds[nthrds];
+  thrd_info_t thrds_info[nthrds];
+
+  thrd_t thrd_check;
+  thrd_info_check_t thrd_info_check;
+  
+  mtx_t mtx;
+  mtx_init(&mtx, mtx_plain);
+
+  cnd_t cnd;
+  cnd_init(&cnd);
+
+  int_padded status[nthrds];
+
+  for ( int tx = 0; tx < nthrds; ++tx ) {
+    thrds_info[tx].v = (const float**) v;
+    thrds_info[tx].w = w;
+    thrds_info[tx].ib = tx;
+    thrds_info[tx].istep = nthrds;
+    thrds_info[tx].sz = sz;
+    thrds_info[tx].tx = tx;
+    thrds_info[tx].mtx = &mtx;
+    thrds_info[tx].cnd = &cnd;
+    thrds_info[tx].status = status;
+    status[tx].val = -1;
+
+    int r = thrd_create(thrds+tx, main_thrd, (void*) (thrds_info+tx));
+    if ( r != thrd_success ) {
+      fprintf(stderr, "failed to create thread\n");
+      exit(1);
+    }
+    thrd_detach(thrds[tx]);
+  }
+
+  {
+    thrd_info_check.v = (const float**) v;
+    thrd_info_check.w = w;
+    thrd_info_check.sz = sz;
+    thrd_info_check.nthrds = nthrds;
+    thrd_info_check.mtx = &mtx;
+    thrd_info_check.cnd = &cnd;
+    thrd_info_check.status = status;
+    int r = thrd_create(&thrd_check, main_thrd_check, (void*) (&thrd_info_check));
+    if ( r != thrd_success ) {
+      fprintf(stderr, "failed to create thread\n");
+      exit(1);
+    }
+  }
+
+  {
+    int r;
+    thrd_join(thrd_check, &r);
+  }
+
+  free(ventries);
+  free(v);
+  free(w);
+
+  mtx_destroy(&mtx);
+  cnd_destroy(&cnd);
+
   return 0;
 }

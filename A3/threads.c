@@ -4,6 +4,9 @@
 #include <string.h>
 #include <threads.h>
 
+typedef int TYPE_ATTR;
+typedef short TYPE_CONV;
+
 typedef struct {
   int val;
   char pad[60]; // cacheline - sizeof(int)
@@ -31,11 +34,7 @@ typedef struct {
   int_padded *status;
 } thrd_info_check_t;
 
-int
-main_thrd(
-    void *args
-    )
-{
+int main_thrd(void *args){
   const thrd_info_t *thrd_info = (thrd_info_t*) args;
   const float **v = thrd_info->v;
   float **w = thrd_info->w;
@@ -65,11 +64,7 @@ main_thrd(
   return 0;
 }
 
-int
-main_thrd_check(
-    void *args
-    )
-{
+int main_thrd_check(void *args){
   const thrd_info_check_t *thrd_info = (thrd_info_check_t*) args;
   const float **v = thrd_info->v;
   float **w = thrd_info->w;
@@ -79,73 +74,44 @@ main_thrd_check(
   cnd_t *cnd = thrd_info->cnd;
   int_padded *status = thrd_info->status;
 
-  const float eps = 1e-1;
-
-  // We do not increment ix in this loop, but in the inner one.
   for ( int ix = 0, ibnd; ix < sz; ) {
-
-    // If no new lines are available, we wait.
+    // Compute min if new row available
     for ( mtx_lock(mtx); ; ) {
-      // We extract the minimum of all status variables.
       ibnd = sz;
       for ( int tx = 0; tx < nthrds; ++tx )
         if ( ibnd > status[tx].val )
           ibnd = status[tx].val;
 
       if ( ibnd <= ix )
-        // We rely on spurious wake-ups, which in practice happen, but are not
-        // guaranteed.
         cnd_wait(cnd,mtx);
       else {
         mtx_unlock(mtx);
         break;
       }
-
-      // Instead of employing a conditional variable, we could also invoke
-      // thrd_yield or thrd_sleep in order to yield to other threads or grant a
-      // specified time to the computation threads.
     }
 
     fprintf(stderr, "checking until %i\n", ibnd);
-
-    // We do not initialize ix in this loop, but in the outer one.
-    for ( ; ix < ibnd; ++ix ) {
-      // We only check the last element in w, since we want to illustrate the
-      // situation where the check thread completes fast than the computaton
-      // threads.
-      int jx = sz-1;
-      float diff = v[ix][jx] - w[ix][jx] * w[ix][jx];
-      if ( diff < -eps || diff > eps ) {
-        fprintf(stderr, "incorrect compuation at %i %i: %f %f %f\n",
-            ix, jx, diff, v[ix][jx], w[ix][jx]);
-        // This exists the whole program, including all other threads.
-        exit(1);
-      }
-
-      // We free the component of w, since it will never be used again.
+    // Perform check 
+    // Here we can write to file if ibnd is larger than threshold
+    for ( ; ix < ibnd; ++ix )
       free(w[ix]);
-    }
   }
 
   return 0;
 }
 
-int
-main()
-{
-  const int sz = 500;
+int main(){
+  const int sz = 50;
 
-  float **v = (float**) malloc(sz*sizeof(float*));
-  float **w = (float**) malloc(sz*sizeof(float*));
   float *ventries = (float*) malloc(sz*sz*sizeof(float));
-  // The entries of w will be allocated in the computation threads are freed in
-  // the check thread.
-
+  float **v = (float**) malloc(sz*sizeof(float*));  
+  
   for ( int ix = 0, jx = 0; ix < sz; ++ix, jx += sz )
     v[ix] = ventries + jx;
-
   for ( int ix = 0; ix < sz*sz; ++ix )
     ventries[ix] = ix;
+  
+  float **w = (float**) malloc(sz*sizeof(float*));
 
   const int nthrds = 8;
   thrd_t thrds[nthrds];
@@ -189,10 +155,7 @@ main()
     thrd_info_check.nthrds = nthrds;
     thrd_info_check.mtx = &mtx;
     thrd_info_check.cnd = &cnd;
-    // It is important that we have initialize status in the previous for-loop,
-    // since it will be consumed by the check threads.
     thrd_info_check.status = status;
-
     int r = thrd_create(&thrd_check, main_thrd_check, (void*) (&thrd_info_check));
     if ( r != thrd_success ) {
       fprintf(stderr, "failed to create thread\n");
