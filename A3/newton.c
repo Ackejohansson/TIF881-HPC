@@ -13,8 +13,8 @@ typedef struct {
 } int_padded;
 
 typedef struct {
-  const float **v;
-  float **w;
+  TYPE_ATTR **attractors;
+  TYPE_CONV **convergence;
   int ib;
   int istep;
   int sz;
@@ -25,7 +25,8 @@ typedef struct {
 } thrd_info_t;
 
 typedef struct {
-  const float **v;
+  TYPE_ATTR **attractors;
+  TYPE_CONV **convergence;
   float **w;
   int sz;
   int nthrds;
@@ -34,36 +35,42 @@ typedef struct {
   int_padded *status;
 } thrd_info_check_t;
 
-static inline void compute_distances(int size, int d, double complex **matrix_attractor, int **matrix_convergence){
+static inline double complex fofx(double complex x, int d){
+  return cpow(x, d) - 1.0;
+}
+
+static inline double complex fprimeofx(double complex x, int d){
+  return d * cpow(x, d - 1);
+}
+
+static inline void compute_distances(int size, int d, TYPE_ATTR *attractor){
   double tol = 1e-6;
   int max_iter = 128;
   double complex x_new, x_old;
-  for (int i = 0; i < size; i++){
-    double a = (double)i/size-2.0;
-    for (int j = 0; j < size; j++){
-      int iter = 0;
-      x_old = a - ((double)j/size+2.0)*I;
-      for(int i=0; i < max_iter; i++){
-        x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);
-        
-        if (cabs(fofx(x_new, d)) < 1e-3) {
-          break;
-        }
-        if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) {
-          break;
-        }
-        x_old = x_new;
+  double a = (double)i/size-2.0;
+  for (int j = 0; j < size; j++){
+    int iter = 0;
+    x_old = a - ((double)j/size+2.0)*I;
+    for(iter; i < max_iter; i++){
+      x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);
+      
+      if (cabs(fofx(x_new, d)) < 1e-3) {
+        break;
       }
-      matrix_attractor[i][j] = x_new;
-      matrix_convergence[i][j] = iter;
+      if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) {
+        break;
+      }
+      x_old = x_new;
     }
+    attractor[j] = x_new;
+    convergence[j] = iter;
   }
 }
 
 int main_thrd(void *args){
   const thrd_info_t *thrd_info = (thrd_info_t*) args;
-  const float **v = thrd_info->v;
-  float **w = thrd_info->w;
+  TYPE_ATTR **attractors = thrd_info->attractors;
+  TYPE_CONV **convergences = thrd_info->convergences;
   const int ib = thrd_info->ib;
   const int istep = thrd_info->istep;
   const int sz = thrd_info->sz;
@@ -73,15 +80,16 @@ int main_thrd(void *args){
   int_padded *status = thrd_info->status;
 
   for ( int ix = ib; ix < sz; ix += istep ) {
-    const float *vix = v[ix];
-    // We allocate the rows of the result before computing, and free them in another thread.
-    float *wix = (float*) malloc(sz*sizeof(float));
-
-    for ( int jx = 0; jx < sz; ++jx )
-      wix[jx] = sqrtf(vix[jx]);
+    TYPE_ATTR *attractor = (TYPE_ATTR*) malloc(sz*sizeof(TYPE_ATTR));
+    TYPE_CONV *convergence = (TYPE_CONV*) malloc(sz*sizeof(TYPE_CONV));
+    for ( size_t cx = 0; cx < size; ++cx ) {
+      attractor[cx] = 0;
+      convergence[cx] = 0;
+    }
+    compute_distances(sz, ix, attractor, convergence);
 
     mtx_lock(mtx);
-    w[ix] = wix;
+    attractors[ix] = attractor;
     status[tx].val = ix + istep;
     mtx_unlock(mtx);
     cnd_signal(cnd);
@@ -92,8 +100,8 @@ int main_thrd(void *args){
 
 int main_thrd_check(void *args){
   const thrd_info_check_t *thrd_info = (thrd_info_check_t*) args;
-  const float **v = thrd_info->v;
-  float **w = thrd_info->w;
+  const TYPE_ATTR **attractors = thrd_info->attractors;
+  const TYPE_CONV **convergences = thrd_info->convergences;
   const int sz = thrd_info->sz;
   const int nthrds = thrd_info->nthrds;
   mtx_t *mtx = thrd_info->mtx;
@@ -128,18 +136,10 @@ int main_thrd_check(void *args){
 
 
 
-int main(){
+int main(int argc, char *argv[]){
   const int sz = 50;
-
-  float *ventries = (float*) malloc(sz*sz*sizeof(float));
-  float **v = (float**) malloc(sz*sizeof(float*));  
-  
-  for ( int ix = 0, jx = 0; ix < sz; ++ix, jx += sz )
-    v[ix] = ventries + jx;
-  for ( int ix = 0; ix < sz*sz; ++ix )
-    ventries[ix] = ix;
-  
-  float **w = (float**) malloc(sz*sizeof(float*));
+  TYPE_ATTR **attractors = (TYPE_ATTR**) malloc(sz*sizeof(TYPE_ATTR*));
+  TYPE_CONV **convergences = (TYPE_CONV**) malloc(sizeof(TYPE_CONV*)*size);
 
   const int nthrds = 8;
   thrd_t thrds[nthrds];
@@ -157,8 +157,8 @@ int main(){
   int_padded status[nthrds];
 
   for ( int tx = 0; tx < nthrds; ++tx ) {
-    thrds_info[tx].v = (const float**) v;
-    thrds_info[tx].w = w;
+    thrds_info[tx].attractors = attractors;
+    thrds_info[tx].convergences = convergences;
     thrds_info[tx].ib = tx;
     thrds_info[tx].istep = nthrds;
     thrds_info[tx].sz = sz;
@@ -177,8 +177,7 @@ int main(){
   }
 
   {
-    thrd_info_check.v = (const float**) v;
-    thrd_info_check.w = w;
+    thrd_info_check.attractors = attractors;
     thrd_info_check.sz = sz;
     thrd_info_check.nthrds = nthrds;
     thrd_info_check.mtx = &mtx;
