@@ -33,3 +33,8 @@ Then run:
 ```
 perf record -e cpu-cycles ./cell_distances
 ```
+
+Webbsite to view ppm files
+``` 
+https://0xc0de.fr/webppm/
+```
