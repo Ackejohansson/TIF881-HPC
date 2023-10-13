@@ -38,6 +38,41 @@ typedef struct {
   int_padded *status;
 } thrd_info_check_t;
 
+
+static inline void parse_args(int argc, char *argv[], int *nthrds, int *size, int *d) {
+  if (argc != 4) {
+    printf("Usage: newton -t<numberOfThreads> -l<numberOfLines> <degreeOfPolynomial>\n");
+    exit(EXIT_FAILURE);
+  }
+  int num_threads_set = 0, size_set = 0, d_set = 0;
+
+  for (int i = 1; i < argc; i++) {
+    char *arg = argv[i];
+    if (arg[0] == '-') {
+      if (arg[1] == 't') {
+        *nthrds = strtol(arg + 2, NULL, 10);
+        num_threads_set = 1;
+      } else if (arg[1] == 'l') {
+        *size = strtol(arg + 2, NULL, 10);
+        size_set = 1;
+      } else {
+        printf("Unrecognized option: %s\n", arg);
+        printf("Usage: ./newton -t<numberOfThreads> -l<numberOfRows> <degreeOfPolynomial>\n");
+        exit(EXIT_FAILURE);
+      }
+    } else {
+      *d = strtol(arg, NULL, 10);
+      d_set = 1;
+    }
+  }
+
+  if (!num_threads_set || !size_set || !d_set) {
+    printf("Usage: ./newton -t<numberOfThreads> -l<numberOfRows> <degreeOfPolynomial>\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+
 static inline double complex fofx(double complex x, int d){
   return cpow(x, d) - 1.0;
 }
@@ -155,12 +190,16 @@ int main_thrd_check(void *args){
 
 
 int main(int argc, char *argv[]){
-  const int sz = 10;
-  const int d = 2;
+  int nthrds, sz, d;
+  parse_args(argc, argv, &nthrds, &sz, &d);
+
   TYPE_ATTR **attractors = (TYPE_ATTR**) malloc(sz*sizeof(TYPE_ATTR*));
   TYPE_CONV **convergences = (TYPE_CONV**) malloc(sz*sizeof(TYPE_CONV*));
-
-  const int nthrds = 1;
+  if ( attractors == NULL || convergences == NULL ) {
+    perror("Memory allocation failed");
+    exit(EXIT_FAILURE);
+  }
+  
   thrd_t thrds[nthrds];
   thrd_info_t thrds_info[nthrds];
 
