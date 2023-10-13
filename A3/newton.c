@@ -85,7 +85,7 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
   double tol = 1e-6;
   int max_iter = 128;
   double complex x_new, x_old;
-  // What row am i on?
+
   double a = (double)ix/size - 2.0;
   for ( int j = 0; j < size; j++){
     int iter;
@@ -95,7 +95,6 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
       printf("x_new = %f + %fi\n", creal(x_new), cimag(x_new));
       
       if (cabs(fofx(x_new, d)) < 1e-3) {
-        printf("converged\n");
         break;
       }
       if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) {
@@ -156,6 +155,15 @@ int main_thrd_check(void *args){
   cnd_t *cnd = thrd_info->cnd;
   int_padded *status = thrd_info->status;
 
+  FILE* fp = open_file("newton_convergence_xd.ppm", "w");
+  if (fp == NULL) {
+    perror("Failed to open the file");
+    exit(EXIT_FAILURE);
+  }
+  fprintf(fp, "P3\n");
+  fprintf(fp, "%d %d\n", sz, sz);
+  fprintf(fp, "255\n");
+
   for ( int ix = 0, ibnd; ix < sz; ) {
     // Compute min if new row available
     for ( mtx_lock(mtx); ; ) {
@@ -171,19 +179,17 @@ int main_thrd_check(void *args){
       cnd_wait(cnd,mtx);
     }
     fprintf(stderr, "checking until %i\n", ibnd);
-    // Perform check 
-    // Here we can write to file if ibnd is larger than threshold
+
     for ( ; ix < ibnd; ++ix ){
-      for ( int j = 0; j<sz; ++j ){
-        // if ( attractors[ix][j] != 0 )
-        //   fprintf(stderr, "attractor[%i][%i] = %i\n", ix, j, attractors[ix][j]);
-        // if ( convergences[ix][j] != 0 )
-        //   fprintf(stderr, "convergence[%i][%i] = %i\n", ix, j, convergences[ix][j]);
-      }
+      for (int jx = 0; jx < sz; ++jx)
+        unsigned char scaledValue = (unsigned char)((convergences[ix][jx] - 1) * 255 / 127);
+        fprintf(fp, "%d %d %d ", scaledValue, scaledValue, scaledValue);
+      fprintf(fp, "\n");
       free((void *)attractors[ix]);
       free((void *)convergences[ix]);
     }
   }
+  fclose(fp);
   return 0;
 }
 
@@ -199,7 +205,7 @@ int main(int argc, char *argv[]){
     perror("Memory allocation failed");
     exit(EXIT_FAILURE);
   }
-  
+
   thrd_t thrds[nthrds];
   thrd_info_t thrds_info[nthrds];
 
