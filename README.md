@@ -52,3 +52,7 @@ Run test
 ```
 /home/hpc2023/newton_iteration/check_submission.jl /home/hpcuser074/dev/a3/newton.tar.gz
 ```
+
+```
+perf record -e cpu-cycles ./newton -l1000 -t1 5
+```
