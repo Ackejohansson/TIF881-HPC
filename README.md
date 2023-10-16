@@ -32,7 +32,9 @@ gcc -O2 -lm -march=native -g cell_distances ./cell_distances.c
 Then run:
 ```
 perf record -e cpu-cycles ./cell_distances
+perf report
 ```
+
 
 Webbsite to view ppm files
 ``` 
