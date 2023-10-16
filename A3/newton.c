@@ -34,6 +34,7 @@ typedef struct {
   int sz;
   int tx;
   int d;
+  double complex *roots;
   mtx_t *mtx;
   cnd_t *cnd;
   int_padded *status;
@@ -85,7 +86,6 @@ static inline void parse_args(int argc, char *argv[], int *nthrds, int *size, in
       d_set = 1;
     }
   }
-
   if (!num_threads_set || !size_set || !d_set) {
     printf("Usage: ./newton -t<numberOfThreads> -l<numberOfRows> <degreeOfPolynomial>\n");
     exit(EXIT_FAILURE);
@@ -101,7 +101,7 @@ static inline double complex fprimeofx(double complex x, int d){
   return d * cpow(x, d - 1);
 }
 
-static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attractor, TYPE_CONV *convergence){
+static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attractor, TYPE_CONV *convergence, double complex *roots){
   double tol = 1e-3;
   int max_iter = 128;
   double complex x_new, x_old;
@@ -112,23 +112,19 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
     double a = -2.0+(4.0*j/size);
     x_old = a + b*I;
     for ( iter; iter < max_iter; iter++){
-      x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);
-      
-      if (cabs(fofx(x_new, d)) < tol) {
+      x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);  
+      if (cabs(fofx(x_new, d)) < tol) 
         break;
-      }
-      if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) {
+      if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) 
         break;
-      }
       x_old = x_new;
     }
 
     // Check which root it converges to and set the attractor
     double min_cabs = 1e10;
     for ( int k = 0; k < d; k++ ){
-      double complex root = cexp(2.0 * 3.1415926535 * I * k / d);
-      if (cabs(x_new - root) < min_cabs ){
-        min_cabs = cabs(x_new - root);
+      if (cabs(x_new - roots[k]) < min_cabs ){
+        min_cabs = cabs(x_new - roots[k]);
         attractor[j] = k;
       }
     }
@@ -148,6 +144,7 @@ int main_thrd(void *args){
   mtx_t *mtx = thrd_info->mtx;
   cnd_t *cnd = thrd_info->cnd;
   int_padded *status = thrd_info->status;
+  double complex *roots = thrd_info->roots;
 
   for ( int ix = ib; ix < sz; ix += istep ) {
     TYPE_ATTR *attractor =   (TYPE_ATTR*) malloc(sz*sizeof(TYPE_ATTR));
@@ -161,7 +158,7 @@ int main_thrd(void *args){
       convergence[jx] = 0;
     }
 
-    compute_distances(sz, d, ix, attractor, convergence);
+    compute_distances(sz, d, ix, attractor, convergence, roots);
 
     mtx_lock(mtx);
     attractors[ix] = attractor;
@@ -202,6 +199,7 @@ int main_thrd_check(void *args){
   fprintf(fpAttr, "%d %d\n", sz, sz);
   fprintf(fpAttr, "255\n");
 
+  int cap = 50;
   for ( int ix = 0, ibnd; ix < sz; ) {
     // Compute min if new row available
     for ( mtx_lock(mtx); ; ) {
@@ -217,18 +215,34 @@ int main_thrd_check(void *args){
       cnd_wait(cnd,mtx);
     }
     fprintf(stderr, "checking until %i\n", ibnd);
+  
+    if (ibnd > ix + cap || ibnd == sz) {
+      int nrRows = ibnd - ix;
+      char convArr[nrRows * (sz*sizeof("%d %d %d "))];
 
-    for ( ; ix < ibnd; ++ix ){
-      for (int jx = 0; jx < sz; ++jx){
-        unsigned char scaledConv = (unsigned char)((convergences[ix][jx] - 1) * 255 / 127);
-        fprintf(fpConv, "%d %d %d ", scaledConv, scaledConv, scaledConv);
-        const unsigned char *color = colors[attractors[ix][jx]];
-        fprintf(fpAttr, "%d %d %d ", color[0], color[1], color[2]);
+      int bufferPosition = 0;
+
+      for ( ; ix < ibnd; ++ix ){
+        for (int jx = 0; jx < sz; ++jx){
+          int scaledConv = (int)((convergences[ix][jx] - 1) * 255 / 127);
+          int chars_written = snprintf(convArr + bufferPosition, 
+            (nrRows * (sz*sizeof("%d %d %d "))) - bufferPosition, 
+            "%d %d %d ", scaledConv, scaledConv, scaledConv
+          );
+
+          //sprintf(convArr, "%d %d %d ", scaledConv, scaledConv, scaledConv);
+          //printf("conv arr: %s\n", convArr);
+          bufferPosition += chars_written;
+
+          const unsigned char *color = colors[attractors[ix][jx]];
+          fprintf(fpAttr, "%d %d %d ", color[0], color[1], color[2]);
+        }
+        convArr[bufferPosition - 1] = '\n';
+        fprintf(fpAttr, "\n");
+        free((void *)attractors[ix]);
+        free((void *)convergences[ix]);
       }
-      fprintf(fpConv, "\n");
-      fprintf(fpAttr, "\n");
-      free((void *)attractors[ix]);
-      free((void *)convergences[ix]);
+      fwrite(convArr, 1, bufferPosition, fpConv);
     }
   }
   fclose(fpConv);
@@ -241,8 +255,8 @@ int main_thrd_check(void *args){
 int main(int argc, char *argv[]){
   int nthrds, sz, d;
   parse_args(argc, argv, &nthrds, &sz, &d);
-  double complex roots[d];
-  compute_roots(d, roots);
+  double complex tmpRoots[d];
+  compute_roots(d, tmpRoots);
 
   TYPE_ATTR **attractors = (TYPE_ATTR**) malloc(sz*sizeof(TYPE_ATTR*));
   TYPE_CONV **convergences = (TYPE_CONV**) malloc(sz*sizeof(TYPE_CONV*));
@@ -276,6 +290,7 @@ int main(int argc, char *argv[]){
     thrds_info[tx].mtx = &mtx;
     thrds_info[tx].cnd = &cnd;
     thrds_info[tx].status = status;
+    thrds_info[tx].roots = tmpRoots;
     status[tx].val = -1;
 
     int r = thrd_create(thrds+tx, main_thrd, (void*) (thrds_info+tx));
@@ -311,6 +326,5 @@ int main(int argc, char *argv[]){
   free(convergences);
   mtx_destroy(&mtx);
   cnd_destroy(&cnd);
-
   return 0;
 }
