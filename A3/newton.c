@@ -8,6 +8,19 @@
 typedef int TYPE_ATTR;
 typedef short TYPE_CONV;
 
+const char colors[10][3] = {
+  {255, 0, 0},     // Red
+  {0, 255, 0},     // Green
+  {0, 0, 255},     // Blue
+  {255, 255, 0},   // Yellow
+  {255, 0, 255},   // Magenta
+  {0, 255, 255},   // Cyan
+  {128, 0, 0},     // Maroon
+  {0, 128, 0},     // Olive
+  {0, 0, 128},     // Navy
+  {128, 128, 128}   // Gray
+};
+
 typedef struct {
   int val;
   char pad[60]; // cacheline - sizeof(int)
@@ -93,17 +106,13 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
   int max_iter = 128;
   double complex x_new, x_old;
   double b = 2.0-(4.0*ix/size);
-  //printf("b = %f\n", b);
 
   for ( int j = 0; j < size; j++){
     int iter = 1;
     double a = -2.0+(4.0*j/size);
     x_old = a + b*I;
-    //printf("x_old = %f + %fi\n", creal(x_old), cimag(x_old));
     for ( iter; iter < max_iter; iter++){
-      //printf("x_new = %f + %fi\n", creal(x_new), cimag(x_new));
       x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);
-      //printf("cabs(fofx(x_new, d)) = %f\n", cabs(fofx(x_new, d)));
       
       if (cabs(fofx(x_new, d)) < tol) {
         break;
@@ -113,9 +122,16 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
       }
       x_old = x_new;
     }
-    //printf("iter = %d\n", iter);
-    //printf("Converged to: %f + %fi\n", creal(x_new), cimag(x_new));
-    //attractor[j] = x_new;
+
+    // Check which root it converges to and set the attractor
+    double min_cabs = 1e10;
+    for ( int k = 0; k < d; k++ ){
+      double complex root = cexp(2.0 * 3.1415926535 * I * k / d);
+      if (cabs(x_new - root) < min_cabs ){
+        min_cabs = cabs(x_new - root);
+        attractor[j] = k;
+      }
+    }
     convergence[j] = iter;
   }
 }
@@ -168,14 +184,23 @@ int main_thrd_check(void *args){
   cnd_t *cnd = thrd_info->cnd;
   int_padded *status = thrd_info->status;
 
-  FILE* fp = fopen("newton_convergence_xd.ppm", "w");
-  if (fp == NULL) {
+  FILE* fpConv = fopen("newton_convergence_xd.ppm", "w");
+  if (fpConv == NULL) {
     perror("Failed to open the file");
     exit(EXIT_FAILURE);
   }
-  fprintf(fp, "P3\n");
-  fprintf(fp, "%d %d\n", sz, sz);
-  fprintf(fp, "255\n");
+  fprintf(fpConv, "P3\n");
+  fprintf(fpConv, "%d %d\n", sz, sz);
+  fprintf(fpConv, "255\n");
+
+  FILE* fpAttr = fopen("newton_attractor_xd.ppm", "w");
+  if (fpAttr == NULL) {
+    perror("Failed to open the file");
+    exit(EXIT_FAILURE);
+  }
+  fprintf(fpAttr, "P3\n");
+  fprintf(fpAttr, "%d %d\n", sz, sz);
+  fprintf(fpAttr, "255\n");
 
   for ( int ix = 0, ibnd; ix < sz; ) {
     // Compute min if new row available
@@ -195,15 +220,19 @@ int main_thrd_check(void *args){
 
     for ( ; ix < ibnd; ++ix ){
       for (int jx = 0; jx < sz; ++jx){
-        unsigned char scaledValue = (unsigned char)((convergences[ix][jx] - 1) * 255 / 127);
-        fprintf(fp, "%d %d %d ", scaledValue, scaledValue, scaledValue);
+        unsigned char scaledConv = (unsigned char)((convergences[ix][jx] - 1) * 255 / 127);
+        fprintf(fpConv, "%d %d %d ", scaledConv, scaledConv, scaledConv);
+        const unsigned char *color = colors[attractors[ix][jx]];
+        fprintf(fpAttr, "%d %d %d ", color[0], color[1], color[2]);
       }
-      fprintf(fp, "\n");
+      fprintf(fpConv, "\n");
+      fprintf(fpAttr, "\n");
       free((void *)attractors[ix]);
       free((void *)convergences[ix]);
     }
   }
-  fclose(fp);
+  fclose(fpConv);
+  fclose(fpAttr);
   return 0;
 }
 
