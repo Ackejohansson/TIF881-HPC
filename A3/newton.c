@@ -38,6 +38,13 @@ typedef struct {
   int_padded *status;
 } thrd_info_check_t;
 
+static inline void compute_roots(int d, double complex *roots){
+  double angle = 2.0 * 3.1415926535 / d;
+  for ( int i = 0; i < d; i++ ){
+    roots[i] = cos(i * angle) + sin(i * angle) * I;
+    printf("roots[%d] = %f + %fi\n", i, creal(roots[i]), cimag(roots[i]));
+  }
+}
 
 static inline void parse_args(int argc, char *argv[], int *nthrds, int *size, int *d) {
   if (argc != 4) {
@@ -82,19 +89,23 @@ static inline double complex fprimeofx(double complex x, int d){
 }
 
 static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attractor, TYPE_CONV *convergence){
-  double tol = 1e-6;
+  double tol = 1e-3;
   int max_iter = 128;
   double complex x_new, x_old;
+  double b = 2.0-(4.0*ix/size);
+  //printf("b = %f\n", b);
 
-  double a = (double)ix/size - 2.0;
   for ( int j = 0; j < size; j++){
-    int iter;
-    x_old = a + ((double)j/size+2.0)*I;
-    for ( iter = 0; iter < max_iter; iter++){
+    int iter = 1;
+    double a = -2.0+(4.0*j/size);
+    x_old = a + b*I;
+    //printf("x_old = %f + %fi\n", creal(x_old), cimag(x_old));
+    for ( iter; iter < max_iter; iter++){
+      //printf("x_new = %f + %fi\n", creal(x_new), cimag(x_new));
       x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);
-      printf("x_new = %f + %fi\n", creal(x_new), cimag(x_new));
+      //printf("cabs(fofx(x_new, d)) = %f\n", cabs(fofx(x_new, d)));
       
-      if (cabs(fofx(x_new, d)) < 1e-3) {
+      if (cabs(fofx(x_new, d)) < tol) {
         break;
       }
       if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) {
@@ -102,6 +113,8 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
       }
       x_old = x_new;
     }
+    //printf("iter = %d\n", iter);
+    //printf("Converged to: %f + %fi\n", creal(x_new), cimag(x_new));
     //attractor[j] = x_new;
     convergence[j] = iter;
   }
@@ -155,7 +168,7 @@ int main_thrd_check(void *args){
   cnd_t *cnd = thrd_info->cnd;
   int_padded *status = thrd_info->status;
 
-  FILE* fp = open_file("newton_convergence_xd.ppm", "w");
+  FILE* fp = fopen("newton_convergence_xd.ppm", "w");
   if (fp == NULL) {
     perror("Failed to open the file");
     exit(EXIT_FAILURE);
@@ -181,9 +194,10 @@ int main_thrd_check(void *args){
     fprintf(stderr, "checking until %i\n", ibnd);
 
     for ( ; ix < ibnd; ++ix ){
-      for (int jx = 0; jx < sz; ++jx)
+      for (int jx = 0; jx < sz; ++jx){
         unsigned char scaledValue = (unsigned char)((convergences[ix][jx] - 1) * 255 / 127);
         fprintf(fp, "%d %d %d ", scaledValue, scaledValue, scaledValue);
+      }
       fprintf(fp, "\n");
       free((void *)attractors[ix]);
       free((void *)convergences[ix]);
@@ -198,6 +212,8 @@ int main_thrd_check(void *args){
 int main(int argc, char *argv[]){
   int nthrds, sz, d;
   parse_args(argc, argv, &nthrds, &sz, &d);
+  double complex roots[d];
+  compute_roots(d, roots);
 
   TYPE_ATTR **attractors = (TYPE_ATTR**) malloc(sz*sizeof(TYPE_ATTR*));
   TYPE_CONV **convergences = (TYPE_CONV**) malloc(sz*sizeof(TYPE_CONV*));
