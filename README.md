@@ -43,6 +43,12 @@ https://0xc0de.fr/webppm/
 
 
 ## A3
+To run test:
+Create tar
+```
+tar -czvf newton.tar.gz newton.c Makefile
+```
+Run test
 ```
 /home/hpc2023/newton_iteration/check_submission.jl /home/hpcuser074/dev/a3/newton.tar.gz
 ```
