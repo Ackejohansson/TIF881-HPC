@@ -101,8 +101,46 @@ static inline double complex fprimeofx(double complex x, int d){
   return d * cpow(x, d - 1);
 }
 
-static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attractor, TYPE_CONV *convergence, double complex *roots){
+
+static inline double complex discrim(double complex x, const int d){
+  switch ((int)d)
+  {
+    case 1: return x;
+    case 2: return x*x;
+    case 3:
+      double complex x2 = x*x;
+      return x2*x;
+    case 4: 
+      x2 = x*x;
+      return 1./(x2*x2);
+    case 5: 
+      x2 = x*x;
+      return 1./(x2*x2*x*5.);
+    case 6: 
+      x2 = x*x;
+      return x2*x2*x2;
+    case 7:
+      x2 = x*x;
+      return x2*x2*x2*x;
+    case 8:
+      x2 = x*x;
+      double complex x4 = x2*x2;
+      return x4*x4;
+    case 9:
+      x2 = x*x;
+      x4 = x2*x2;
+      return x4*x4*x;
+    case 10:
+      x2 = x*x;
+      x4 = x2*x2;
+      return x4*x4*x2;
+  }
+}
+
+
+static inline void compute_distances(int size, const int d, int ix, TYPE_ATTR *attractor, TYPE_CONV *convergence, double complex *roots){
   double tol = 1e-3;
+  double tol2 = tol*tol;
   int max_iter = 128;
   double complex x_new, x_old;
   double b = 2.0-(4.0*ix/size);
@@ -112,8 +150,12 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
     double a = -2.0+(4.0*j/size);
     x_old = a + b*I;
     for ( iter; iter < max_iter; iter++){
-      x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);  
-      if (cabs(fofx(x_new, d)) < tol) 
+      x_new = x_old*(1-1/d) + discrim(x_old, d-1.);
+      printf("Discrim = %f + %fi\n", creal(discrim(x_old, d-1)), cimag(discrim(x_old, d-1.)));
+      printf("x_old *(1-1/b) = %f + %fi\n", creal(x_old *(1-1/d)), cimag(x_old *(1-1/d)));
+      printf("x_new = %f + %fi\n", creal(x_new), cimag(x_new));
+      printf("Cabs fofx = %f\n", cabs(fofx(x_new, d)));
+      if (cabs(fofx(x_new, d)) < tol ) 
         break;
       if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) 
         break;
@@ -128,8 +170,12 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
         attractor[j] = k;
       }
     }
+    // printf("HERE1\n");
+    printf("iter = %d\n", iter);
     convergence[j] = iter;
+    // printf("HERE2\n");
   }
+  printf("Here3\n");
 }
 
 int main_thrd(void *args){
@@ -216,7 +262,7 @@ int main_thrd_check(void *args){
     }
     //fprintf(stderr, "checking until %i\n", ibnd);
   
-    // if (ibnd > ix + cap || ibnd == sz) {
+    if (ibnd > ix + cap || ibnd == sz) {
       int nrRows = ibnd - ix;
       char convArr[nrRows * (sz*sizeof("%d %d %d "))];
 
@@ -243,7 +289,7 @@ int main_thrd_check(void *args){
         free((void *)convergences[ix]);
       }
       fwrite(convArr, 1, bufferPosition, fpConv);
-    //}
+    }
   }
   fclose(fpConv);
   fclose(fpAttr);
