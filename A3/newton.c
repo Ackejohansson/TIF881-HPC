@@ -214,9 +214,9 @@ int main_thrd_check(void *args){
       }
       cnd_wait(cnd,mtx);
     }
-    fprintf(stderr, "checking until %i\n", ibnd);
+    //fprintf(stderr, "checking until %i\n", ibnd);
   
-    if (ibnd > ix + cap || ibnd == sz) {
+    // if (ibnd > ix + cap || ibnd == sz) {
       int nrRows = ibnd - ix;
       char convArr[nrRows * (sz*sizeof("%d %d %d "))];
 
@@ -243,7 +243,7 @@ int main_thrd_check(void *args){
         free((void *)convergences[ix]);
       }
       fwrite(convArr, 1, bufferPosition, fpConv);
-    }
+    //}
   }
   fclose(fpConv);
   fclose(fpAttr);
