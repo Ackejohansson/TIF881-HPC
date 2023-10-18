@@ -8,17 +8,17 @@
 typedef int TYPE_ATTR;
 typedef short TYPE_CONV;
 
-const char colors[10][3] = {
-  {255, 0, 0},     // Red
-  {0, 255, 0},     // Green
-  {0, 0, 255},     // Blue
-  {255, 255, 0},   // Yellow
-  {255, 0, 255},   // Magenta
-  {0, 255, 255},   // Cyan
-  {128, 0, 0},     // Maroon
-  {0, 128, 0},     // Olive
-  {0, 0, 128},     // Navy
-  {128, 128, 128}   // Gray
+const char colors[10][12] = {
+  "255 0 0 ",     // Red
+  "0 255 0 ",     // Green
+  "0 0 255 ",     // Blue
+  "255 255 0 ",   // Yellow
+  "255 0 255 ",   // Magenta
+  "0 255 255 ",   // Cyan
+  "128 0 0 ",     // Maroon
+  "0 128 0 ",     // Olive
+  "0 0 128 ",     // Navy
+  "128 128 128 "   // Gray
 };
 
 typedef struct {
@@ -112,7 +112,7 @@ static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attract
     double a = -2.0+(4.0*j/size);
     x_old = a + b*I;
     for ( iter; iter < max_iter; iter++){
-      x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);  
+      x_new = x_old - fofx(x_old, d)/fprimeofx(x_old, d);
       if (cabs(fofx(x_new, d)) < tol) 
         break;
       if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) 
@@ -177,29 +177,32 @@ int main_thrd_check(void *args){
   const TYPE_CONV *const *convergences = (const TYPE_CONV *const *)thrd_info->convergences;
   const int sz = thrd_info->sz;
   const int nthrds = thrd_info->nthrds;
+  const int d = thrd_info->d;
   mtx_t *mtx = thrd_info->mtx;
   cnd_t *cnd = thrd_info->cnd;
   int_padded *status = thrd_info->status;
 
-  FILE* fpConv = fopen("newton_convergence_xd.ppm", "w");
-  if (fpConv == NULL) {
+  // Setup files
+  char convFileName[sizeof("newton_convergence_x%d.ppm")];
+  char attrFileName[sizeof("newton_attractor_x%d.ppm")];
+  sprintf(convFileName, "newton_convergence_x%d.ppm", d);
+  sprintf(attrFileName, "newton_attractor_x%d.ppm", d);
+  FILE *fpConv = fopen(convFileName, "w");
+  FILE *fpAttr = fopen(attrFileName, "w");
+
+  if (fpConv == NULL || fpAttr == NULL) {
     perror("Failed to open the file");
     exit(EXIT_FAILURE);
   }
-  fprintf(fpConv, "P3\n");
-  fprintf(fpConv, "%d %d\n", sz, sz);
-  fprintf(fpConv, "255\n");
-
-  FILE* fpAttr = fopen("newton_attractor_xd.ppm", "w");
-  if (fpAttr == NULL) {
-    perror("Failed to open the file");
-    exit(EXIT_FAILURE);
-  }
-  fprintf(fpAttr, "P3\n");
-  fprintf(fpAttr, "%d %d\n", sz, sz);
-  fprintf(fpAttr, "255\n");
-
+  fprintf(fpConv, "P3\n%d %d\n255\n", sz, sz);
+  fprintf(fpAttr, "P3\n%d %d\n255\n", sz, sz);
+  
   int cap = 50;
+  const int pixelSize = 12;
+  char convArr[256][pixelSize+1];
+  for (int jx =0; jx<256; ++jx)
+    sprintf(convArr[jx], "%03i %03i %03i ", jx, jx, jx);
+  
   for ( int ix = 0, ibnd; ix < sz; ) {
     // Compute min if new row available
     for ( mtx_lock(mtx); ; ) {
@@ -214,36 +217,28 @@ int main_thrd_check(void *args){
       }
       cnd_wait(cnd,mtx);
     }
-    //fprintf(stderr, "checking until %i\n", ibnd);
   
-    // if (ibnd > ix + cap || ibnd == sz) {
+    if (ibnd > ix + cap || ibnd == sz) {
+      // fprintf(stderr, "checking until %i\n", ibnd);
       int nrRows = ibnd - ix;
-      char convArr[nrRows * (sz*sizeof("%d %d %d "))];
+      char *convBuf = malloc(sz*pixelSize*nrRows);
+      char *attrBuf = malloc(sz*pixelSize*nrRows);
 
-      int bufferPosition = 0;
-
-      for ( ; ix < ibnd; ++ix ){
+      
+      for (int idx = 0; ix < ibnd; ++ix, idx+=sz*pixelSize){
         for (int jx = 0; jx < sz; ++jx){
           int scaledConv = (int)((convergences[ix][jx] - 1) * 255 / 127);
-          int chars_written = snprintf(convArr + bufferPosition, 
-            (nrRows * (sz*sizeof("%d %d %d "))) - bufferPosition, 
-            "%d %d %d ", scaledConv, scaledConv, scaledConv
-          );
-
-          //sprintf(convArr, "%d %d %d ", scaledConv, scaledConv, scaledConv);
-          //printf("conv arr: %s\n", convArr);
-          bufferPosition += chars_written;
-
-          const unsigned char *color = colors[attractors[ix][jx]];
-          fprintf(fpAttr, "%d %d %d ", color[0], color[1], color[2]);
+          memcpy(convBuf + idx + pixelSize*jx, convArr[scaledConv], pixelSize);
+          memcpy(attrBuf + idx + jx*pixelSize, colors[attractors[ix][jx]], pixelSize); 
         }
-        convArr[bufferPosition - 1] = '\n';
-        fprintf(fpAttr, "\n");
         free((void *)attractors[ix]);
         free((void *)convergences[ix]);
       }
-      fwrite(convArr, 1, bufferPosition, fpConv);
-    //}
+      fwrite(convBuf, 1, pixelSize*sz*nrRows, fpConv);
+      fwrite(attrBuf, 1, pixelSize*sz*nrRows, fpAttr);
+      free(convBuf);
+      free(attrBuf);
+    }
   }
   fclose(fpConv);
   fclose(fpAttr);
