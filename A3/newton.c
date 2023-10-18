@@ -53,7 +53,7 @@ typedef struct {
 } thrd_info_check_t;
 
 static inline void compute_roots(int d, double complex *roots){
-  double angle = 2.0 * 3.1415926535 / d;
+  double angle = 2.0 * 3.141592 / d;
   for ( int i = 0; i < d; i++ ){
     roots[i] = cos(i * angle) + sin(i * angle) * I;
     printf("roots[%d] = %f + %fi\n", i, creal(roots[i]), cimag(roots[i]));
@@ -112,7 +112,7 @@ static inline double complex discrim(double complex x, const int d){
       return x2*x;
     case 4: 
       x2 = x*x;
-      return 1./(x2*x2);
+      return x*(1.-1./d) + 1./(d*x2*x2);
     case 5: 
       x2 = x*x;
       return 1./(x2*x2*x*5.);
@@ -150,7 +150,7 @@ static inline void compute_distances(int size, const int d, int ix, TYPE_ATTR *a
     double a = -2.0+(4.0*j/size);
     x_old = a + b*I;
     for ( iter; iter < max_iter; iter++){
-      x_new = x_old*(1-1/d) + discrim(x_old, d-1.);
+      x_new =  discrim(x_old, d-1.);
       printf("Discrim = %f + %fi\n", creal(discrim(x_old, d-1)), cimag(discrim(x_old, d-1.)));
       printf("x_old *(1-1/b) = %f + %fi\n", creal(x_old *(1-1/d)), cimag(x_old *(1-1/d)));
       printf("x_new = %f + %fi\n", creal(x_new), cimag(x_new));
