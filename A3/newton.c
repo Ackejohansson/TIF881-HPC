@@ -7,32 +7,97 @@
 
 typedef int TYPE_ATTR;
 typedef short TYPE_CONV;
-typedef double complex (*FunctionPtr)(double complex);
 
 const char colors[10][12] = {
-  "255 0 0 ",     // Red
-  "0 255 0 ",     // Green
-  "0 0 255 ",     // Blue
-  "255 255 0 ",   // Yellow
-  "255 0 255 ",   // Magenta
-  "0 255 255 ",   // Cyan
-  "128 0 0 ",     // Maroon
-  "0 128 0 ",     // Olive
-  "0 0 128 ",     // Navy
+  "255 000 000 ",     // Red
+  "000 255 000 ",     // Green
+  "000 000 255 ",     // Blue
+  "255 255 000 ",   // Yellow
+  "255 000 255 ",   // Magenta
+  "000 255 255 ",   // Cyan
+  "128 000 000 ",     // Maroon
+  "000 128 000 ",     // Olive
+  "000 000 128 ",     // Navy
   "128 128 128 "   // Gray
 };
 
+typedef double complex (*ComplexFunctionPtr)(double complex);
 
-double complex n1(double complex x) { return 1+0*I; }
-double complex n2(double complex x) { return 1./(2.*x)  +  x/2.; }
-double complex n3(double complex x) { return 1./(3.*x*x) + 2.*x/3.; }
-double complex n4(double complex x) { return 0.25/(x*x*x) + 0.75*x; }
-double complex n5(double complex x) { return 0.2*1./(x*x*x*x) + 0.8*x; }
-double complex n6(double complex x) { complex double x2 = x*x; return 1./(6.*x2*x2*x2) + 5.*x/6.; }
-double complex n7(double complex x) { complex double x2 = x*x; return 1./(7.*x2*x2*x2*x) + 6.*x/7.; }
-double complex n8(double complex x) { complex double x2 = x*x; return 0.125/(x2*x2*x2*x2) + 7.*x/8.; }
-double complex n9(double complex x) { complex double x2 = x*x; return 1./(9.*x2*x2*x2*x2*x) + 8.*x/9.; }
-double complex n10(double complex x) { complex double x2 = x*x; return 0.1/(x2*x2*x2*x2*x2) + 9.*x/10.; }
+static inline double complex newton_step1(double complex x) {
+    return 1.0;
+}
+static inline double complex newton_step2(double complex x) {
+    return (0.5*x)+(1./(2.*x));
+}
+static inline double complex newton_step3(double complex x) {
+    return 2.0*x/3.0 + 1.0/(3.0*x*x);
+}
+static inline double complex newton_step4(double complex x) {
+    double complex xsq = x * x;
+    return 3.0*x/4.0+1.0/(4.0*x*xsq);
+}
+static inline double complex newton_step5(double complex x) {
+    double complex xsq = x * x;
+    return 4.0*x/5.0 + 1.0/(5.0*xsq*xsq);
+}
+static inline double complex newton_step6(double complex x) {
+    double complex xsq = x * x;
+    return 5.*x/6. + 1./(6.*xsq*xsq*x);
+}
+static inline double complex newton_step7(double complex x) {
+    double complex xsq = x * x;
+    return 6.*x/7. + 1./(7.*xsq*xsq*xsq);
+}
+static inline double complex newton_step8(double complex x) {
+    double complex xsq = x * x;
+    return 7.*x/8. + 1./(8.*xsq*xsq*xsq*x);
+}
+static inline double complex newton_step9(double complex x) {
+    double complex xsq = x * x;
+    return 8.*x/9. + 1./(9.*xsq*xsq*xsq*xsq);
+}
+static inline double complex newton_step10(double complex x) {
+    double complex xsq = x * x;
+    return 0.9*x + 0.1/(xsq*xsq*xsq*xsq*x);
+}
+
+static inline double complex fofx1(double complex x) {
+    return x-1.0;
+}
+static inline double complex fofx2(double complex x) {
+    return x*x-1.;
+}
+static inline double complex fofx3(double complex x) {
+    return x*x*x-1.;
+}
+static inline double complex fofx4(double complex x) {
+    double complex xsq = x * x;
+    return xsq*xsq-1.;
+}
+static inline double complex fofx5(double complex x) {
+    double complex xsq = x * x;
+    return xsq*xsq*x-1.;
+}
+static inline double complex fofx6(double complex x) {
+    double complex xsq = x * x;
+    return xsq*xsq*xsq-1.;
+}
+static inline double complex fofx7(double complex x) {
+    double complex xsq = x * x;
+    return xsq*xsq*xsq*x-1.;
+}
+static inline double complex fofx8(double complex x) {
+    double complex xsq = x * x;
+    return xsq*xsq*xsq*xsq-1.;
+}
+static inline double complex fofx9(double complex x) {
+    double complex xsq = x * x;
+    return xsq*xsq*xsq*xsq*x-1.;
+}
+static inline double complex fofx10(double complex x) {
+    double complex xsq = x * x;
+    return xsq*xsq*xsq*xsq*xsq-1.;
+}
 
 
 typedef struct {
@@ -52,7 +117,8 @@ typedef struct {
   mtx_t *mtx;
   cnd_t *cnd;
   int_padded *status;
-  double complex (*newtonIteration)(double complex); 
+  ComplexFunctionPtr newton_step; 
+  ComplexFunctionPtr fofx; 
 } thrd_info_t;
 
 typedef struct {
@@ -68,7 +134,7 @@ typedef struct {
 } thrd_info_check_t;
 
 static inline void compute_roots(int d, double complex *roots){
-  double angle = 2.0 * 3.14159 / d;
+  double angle = 2.0 * 3.1415926535 / d;
   for ( int i = 0; i < d; i++ ){
     roots[i] = cos(i * angle) + sin(i * angle) * I;
   }
@@ -107,42 +173,34 @@ static inline void parse_args(int argc, char *argv[], int *nthrds, int *size, in
 }
 
 
-static inline double complex fofx(double complex x, int d){
-  return cpow(x, d) - 1.0;
-}
-
-static inline double complex fprimeofx(double complex x, int d){
-  return d * cpow(x, d - 1);
-}
-
-
-
-static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attractor, TYPE_CONV *convergence, double complex *roots, double complex (*newtonIteration)(double complex)){
+static inline void compute_distances(int size, int d, int ix, TYPE_ATTR *attractor, TYPE_CONV *convergence, double complex *roots, ComplexFunctionPtr newton_step,ComplexFunctionPtr fofx){
   double tol = 1e-3;
   int max_iter = 128;
-  double complex x_new, x_old;
+  double complex x;
   double b = 2.0-(4.0*ix/size);
 
   for ( int j = 0; j < size; j++){
     int iter = 1;
     double a = -2.0+(4.0*j/size);
-    x_old = a + b*I;
-    for ( iter; iter < max_iter; iter++){ 
-      x_new = newtonIteration(x_old);
-      // x_new = x_old - fofx(x_old, d)/fprimeofx(x_old,d);  
-      
-      if (cabs(fofx(x_new,d)) < 1e-3)  
+    x = a + b*I;
+    for ( iter; iter < max_iter; iter++){
+      x = newton_step(x);
+
+      double complex tmp_x = fofx(x);
+      double abs_sq = (double)(creal(tmp_x)*creal(tmp_x))+(cimag(tmp_x)*cimag(tmp_x));
+      double x_re = creal(x);
+      double x_im = cimag(x);
+      if (abs_sq < 1e-6)
         break;
-      if (cabs(creal(x_new)) > 1e10 || cabs(cimag(x_new)) > 1e10) 
+      if (x_re > 1e10 || x_re < -1e10 || x_im > 1e10 || x_im < -1e10)
         break;
-      x_old = x_new;
     }
 
     // Check which root it converges to and set the attractor
     double min_cabs = 1e10;
     for ( int k = 0; k < d; k++ ){
-      if (cabs(x_new - roots[k]) < min_cabs ){
-        min_cabs = cabs(x_new - roots[k]);
+      if (cabs(x - roots[k]) < min_cabs ){
+        min_cabs = cabs(x - roots[k]);
         attractor[j] = k;
       }
     }
@@ -163,7 +221,8 @@ int main_thrd(void *args){
   cnd_t *cnd = thrd_info->cnd;
   int_padded *status = thrd_info->status;
   double complex *roots = thrd_info->roots;
-  double complex (*newtonIteration)(double complex) = thrd_info->newtonIteration;
+  ComplexFunctionPtr newton_step = thrd_info->newton_step;
+  ComplexFunctionPtr fofx = thrd_info->fofx;
 
   for ( int ix = ib; ix < sz; ix += istep ) {
     TYPE_ATTR *attractor =   (TYPE_ATTR*) malloc(sz*sizeof(TYPE_ATTR));
@@ -177,7 +236,7 @@ int main_thrd(void *args){
       convergence[jx] = 0;
     }
 
-    compute_distances(sz, d, ix, attractor, convergence, roots, newtonIteration);
+    compute_distances(sz, d, ix, attractor, convergence, roots, newton_step, fofx);
 
     mtx_lock(mtx);
     attractors[ix] = attractor;
@@ -189,7 +248,6 @@ int main_thrd(void *args){
 
   return 0;
 }
-
 
 int main_thrd_check(void *args){
   const thrd_info_check_t *thrd_info = (thrd_info_check_t*) args;
@@ -240,7 +298,7 @@ int main_thrd_check(void *args){
     }
 
     if (ibnd > ix + cap || ibnd == sz) {
-      fprintf(stderr, "checking until %i\n", ibnd);
+     // fprintf(stderr, "checking until %i\n", ibnd);
 
       int nrRows = ibnd - ix;
       char *conv_buf = malloc(sz*pxl_size*nrRows);
@@ -276,8 +334,15 @@ int main(int argc, char *argv[]){
   int nthrds, sz, d;
   parse_args(argc, argv, &nthrds, &sz, &d);
 
-  FunctionPtr functions[] = {n1, n2, n3, n4, n5, n6, n7, n8, n9, n10};
-  FunctionPtr newtonIteration = functions[d-1];
+  ComplexFunctionPtr newtonStepTable[] = {
+    newton_step1, newton_step2, newton_step3, newton_step4, newton_step5,
+    newton_step6, newton_step7, newton_step8, newton_step9, newton_step10
+  };
+  ComplexFunctionPtr fofxTable[] = {
+        fofx1, fofx2, fofx3, fofx4, fofx5,fofx6, fofx7, fofx8, fofx9, fofx10 };
+
+  ComplexFunctionPtr newton_step = newtonStepTable[d-1];
+  ComplexFunctionPtr fofx = fofxTable[d-1];
 
   double complex tmpRoots[d];
   compute_roots(d, tmpRoots);
@@ -315,7 +380,8 @@ int main(int argc, char *argv[]){
     thrds_info[tx].cnd = &cnd;
     thrds_info[tx].status = status;
     thrds_info[tx].roots = tmpRoots;
-    thrds_info[tx].newtonIteration = newtonIteration;
+    thrds_info[tx].newton_step = newton_step;
+    thrds_info[tx].fofx = fofx;
     status[tx].val = -1;
 
     int r = thrd_create(thrds+tx, main_thrd, (void*) (thrds_info+tx));
