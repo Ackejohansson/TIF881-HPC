@@ -1,88 +1,123 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <omp.h>
-#include <unistd.h>
 #include <string.h>
+#include <math.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <time.h>
+#include <omp.h>
 
-#define TOT_DIST 3465
+#define NUM_DISTANCES 3465
+#define CELL_SIZE 24
+#define BLOCK_SIZE 2000
 
-int main(int argc, char *argv[]) {
-  // Set the number of threads
-  int nr_threads = 1;
-  char* ptr = strchr(argv[1], 't');
-  if (ptr) {
-    nr_threads = strtol(++ptr, NULL, 10);
+static inline short parse_coord(char* s) {
+  short x;
+  x =   10000 * (s[1] - '0')
+      + 1000  * (s[2] - '0')
+      + 100   * s[4] 
+      + 10    * s[5] 
+      +         s[6] 
+      - 5328;
+
+  if (s[0] == '-') {
+    return -x;
+  } else {
+    return x;
   }
-  //omp_set_num_threads(nr_threads);
-  printf("Number of threads sat to : %d\n", nr_threads);
-  
-  // Open file
-  printf("Reading data...\n");
-  FILE *file = fopen("./cells", "r");
-  if (file == NULL) {
-    perror("Error opening file");
-    exit(EXIT_FAILURE);
-  }
-  fseek(file, 0, SEEK_END);
-  long file_size = ftell(file);
-  const size_t cell_byte = 24;
-  size_t nr_cells = file_size / cell_byte;
-  printf("Number of cells: %zu\n", nr_cells);
-  
-  // Allocate memory
-  printf("Allocating memory...");
-  int cells_read_max = 10;
-  if (nr_cells < cells_read_max)
-    cells_read_max = nr_cells;
-  int nr_blocks = ceil((double)nr_cells / cells_read_max);
-  double matrix_block[cells_read_max][3];
-  for (int i=0; i<cells_read_max; i++){
-    matrix_block[i][0] = 0.0;
-    matrix_block[i][1] = 0.0;
-    matrix_block[i][2] = 0.0;
-  }
-  double xBase, yBase, zBase;
-  double xDummy, yDummy, zDummy;
-  int distances[TOT_DIST]={0};
-  printf("Number of blocks: %d\n", nr_blocks);
-  int counter=0;
-  // Read data from file
-  printf("Reading data...\n");
-  for(int i=0; i<cells_read_max; i++){
-    fseek(file, i*cell_byte +i+1, SEEK_SET);
-    fscanf(file, "%lf %lf %lf", &xBase, &yBase, &zBase);
-    for (int j = i+1; j < nr_cells; j += cells_read_max){
-      int index = 0;
-      while(index < cells_read_max && fscanf(file, "%lf %lf %lf", &xDummy, &yDummy, &zDummy) != EOF){
-        matrix_block[index][0] = xDummy;
-        matrix_block[index][1] = yDummy;
-        matrix_block[index][2] = zDummy;
-        ++index;
-      }
-      // Calculate distances
-      //printf("Calculating distances...\n");
-      for (int k=0; k<index; k++){ // cant start on 0?
-        double sq_xdiff = (matrix_block[k][0]-xBase)*(matrix_block[k][0]-xBase);
-        double sq_ydiff = (matrix_block[k][1]-yBase)*(matrix_block[k][1]-yBase);
-        double sq_zdiff = (matrix_block[k][2]-zBase)*(matrix_block[k][2]-zBase);
-        double distance = sqrt(sq_xdiff + sq_ydiff + sq_zdiff)*100;
-        //printf("Distance: %f\n", distance);
-        int dist = (int)round(distance);
-        //printf("Distance: %d\n", dist);
-        //printf("Difference done...\n");
-        ++distances[dist];
-        ++counter;
-      }
+}
+
+
+int main( int argc, char* argv[])
+{
+  int num_threads = 1; 
+
+  int opt;
+  while ((opt = getopt(argc, argv, "t:")) != -1) {
+    switch (opt) {
+      case 't':
+        num_threads = atoi(optarg);
+        break;
+    default:
+      fprintf(stderr, "Usage: %s [-t num_threads]\n", argv[0]);
+      return 1;
     }
   }
+
+  omp_set_num_threads(num_threads);
+
+  int frequencies[NUM_DISTANCES]={0};
+
+  FILE* file = fopen("cells", "r");
+
+  if (file == NULL) {
+    perror("Error opening file");
+    return 1;
+  }
+
+  fseek(file, 0, SEEK_END);
+  size_t file_size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+
+  int num_blocks = (int) (file_size + BLOCK_SIZE * CELL_SIZE - 1)/(BLOCK_SIZE*CELL_SIZE);
+  int num_points = (int) (file_size + CELL_SIZE - 1) / CELL_SIZE;
+
+  short block1[BLOCK_SIZE][3];
+  short block2[BLOCK_SIZE][3];
+
+  short x1, y1, z1;
+  int cells_read;
+  char line[CELL_SIZE];
+
+  int bz = BLOCK_SIZE;
+  int sz = num_points;
+
+  for ( size_t ib = 0; ib < num_points; ib += BLOCK_SIZE ) {
+    size_t ie = ib + BLOCK_SIZE < num_points ? BLOCK_SIZE : num_points-ib;
+    int cells_read = 0;
+    while (cells_read < ie && fread(line, 1, CELL_SIZE,file)) {
+      block1[cells_read][0] = parse_coord(line);
+      block1[cells_read][1] = parse_coord(line+8);
+      block1[cells_read][2] = parse_coord(line+16);
+      cells_read++;
+    }
+    for ( size_t jb = 0; jb < num_points-ib; jb += BLOCK_SIZE ) {
+      size_t je = jb + BLOCK_SIZE < num_points ? BLOCK_SIZE : num_points-jb;
+      if (jb==0) {
+        memcpy(block2, block1, sizeof(block1)); 
+      } else {
+        cells_read = 0;
+        while (cells_read < ie && fread(line, 1, CELL_SIZE,file)) {
+          block2[cells_read][0] = parse_coord(line);
+          block2[cells_read][1] = parse_coord(line+8);
+          block2[cells_read][2] = parse_coord(line+16);
+          cells_read++;
+        }
+      }
+
+      #pragma omp parallel for reduction(+:frequencies)
+      for ( size_t ix = 0; ix < ie; ++ix ){
+        size_t je_inner = (jb == 0) ? ix : je;
+        for ( size_t jx = 0; jx < je_inner; ++jx ) {
+          int squared_dist =    (block1[ix][0] - block2[jx][0]) * (block1[ix][0] - block2[jx][0]) 
+                              + (block1[ix][1] - block2[jx][1]) * (block1[ix][1] - block2[jx][1]) 
+                              + (block1[ix][2] - block2[jx][2]) * (block1[ix][2] - block2[jx][2]);
+          int dist = (int)(sqrtf((float)squared_dist) / 10.0f + 0.5f);
+          frequencies[dist]+=1;
+        }
+      }
+    }
+    fseek(file, (ib+BLOCK_SIZE) * CELL_SIZE, SEEK_SET);
+
+  }
   fclose(file);
-  printf("Printing results...\n");
-  // Print value of distances
-  
-  for (int i=0; i<TOT_DIST; i++)
-    if(distances[i] != 0)
-      printf("%d %d\n", i, distances[i]);
-  printf("Counter: %d\n", counter);
+
+
+  for( int ix = 1; ix < NUM_DISTANCES; ++ix) {
+    if (frequencies[ix] != 0) {
+      printf("%05.2f %i\n", ix / 100.0, frequencies[ix]);
+    }
+  }
+
   return 0;
 }
