@@ -77,14 +77,10 @@ int main( int argc, char* argv[])
         }
       }
 
-      //#pragma omp parallel for reduction(+:frequencies)
       for ( size_t ix = 0; ix < ie; ++ix ){
         size_t je_inner = (jb == 0) ? ix : je;
         for ( size_t jx = 0; jx < je_inner; ++jx ) {
           float squared_dist = pow(block1[ix][0] - block2[jx][0], 2) + pow(block1[ix][1] - block2[jx][1], 2) + pow(block1[ix][2] - block2[jx][2], 2);
-          // float squared_dist =  (block1[ix][0] - block2[jx][0]) * (block1[ix][0] - block2[jx][0]) 
-          //                     + (block1[ix][1] - block2[jx][1]) * (block1[ix][1] - block2[jx][1]) 
-          //                     + (block1[ix][2] - block2[jx][2]) * (block1[ix][2] - block2[jx][2]);
           int dist = (int)(sqrtf(squared_dist) / 10.0f + 0.5f);
           frequencies[dist]+=1;
         }

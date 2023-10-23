@@ -77,7 +77,6 @@ int main( int argc, char* argv[])
         }
       }
 
-      //#pragma omp parallel for reduction(+:frequencies)
       for ( size_t ix = 0; ix < ie; ++ix ){
         size_t je_inner = (jb == 0) ? ix : je;
         for ( size_t jx = 0; jx < je_inner; ++jx ) {

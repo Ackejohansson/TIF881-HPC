@@ -84,7 +84,6 @@ int main( int argc, char* argv[])
                               + ((block1[ix][1] - block2[jx][1]) * (block1[ix][1] - block2[jx][1])) 
                               + ((block1[ix][2] - block2[jx][2]) * (block1[ix][2] - block2[jx][2]));
 
-          // Unroll the loop
           float squared_dist2 =  ((block1[ix+1][0] - block2[jx][0]) * (block1[ix+1][0] - block2[jx][0]))
                               + ((block1[ix+1][1] - block2[jx][1]) * (block1[ix+1][1] - block2[jx][1])) 
                               + ((block1[ix+1][2] - block2[jx][2]) * (block1[ix+1][2] - block2[jx][2]));
