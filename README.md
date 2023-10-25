@@ -19,7 +19,7 @@ Create tar file:
 ```bash
 tar -czvf cell_distances.tar.gz Makefile cell_distances.c
 ```
-Test script :
+Test script:
 ```bash
 /home/hpc2023/cell_distances/check_submission.jl /home/hpcuser074/dev/a2/cell_distances.tar.gz
 ```
@@ -35,12 +35,10 @@ perf record -e cpu-cycles ./cell_distances
 perf report
 ```
 
-
 Webbsite to view ppm files
 ``` 
 https://0xc0de.fr/webppm/
 ```
-
 
 ## A3
 To run test:
